@@ -108,6 +108,8 @@ def construir_resumen(df: pd.DataFrame):
         "municipios_lista": ", ".join(municipios) if municipios else "No disponible",
         "fecha_min": fecha_min,
         "fecha_max": fecha_max,
+        "anio_min": fecha_min[:4] if fecha_min != "N/D" else "N/D",
+        "anio_max": fecha_max[:4] if fecha_max != "N/D" else "N/D",
         "pm25_prom": formato_numero(pm25_prom),
         "pm10_prom": formato_numero(pm10_prom),
         "no2_prom": formato_numero(no2_prom),
@@ -340,15 +342,15 @@ TEMPLATE = r'''
             backdrop-filter: blur(18px);
         }
         .brand { display: flex; align-items: center; gap: 14px; margin-bottom: 36px; }
-        .logo {
-            width: 48px; height: 48px; border-radius: 16px;
-            background: linear-gradient(135deg, var(--cyan), var(--blue));
-            display: grid; place-items: center;
-            box-shadow: 0 0 32px rgba(32,213,255,.28);
-            font-weight: 900;
+        .brand-logo {
+            width: 62px; height: 62px; object-fit: contain;
+            border-radius: 18px; padding: 7px;
+            background: linear-gradient(145deg, rgba(255,255,255,.13), rgba(255,255,255,.035));
+            border: 1px solid rgba(255,255,255,.15);
+            box-shadow: 0 14px 38px rgba(0,0,0,.28), 0 0 28px rgba(32,213,255,.16);
         }
         .brand h1 { margin: 0; font-size: 24px; letter-spacing: 1px; }
-        .brand small { color: var(--muted); }
+        .brand small { color: var(--muted); line-height: 1.35; }
         nav a {
             display: flex; align-items: center; gap: 12px;
             padding: 13px 14px; margin: 8px 0;
@@ -360,20 +362,65 @@ TEMPLATE = r'''
         .hero {
             position: relative;
             border: 1px solid var(--stroke);
-            border-radius: 28px;
-            padding: 42px;
+            border-radius: 30px;
+            padding: 0;
             overflow: hidden;
             background:
-                linear-gradient(135deg, rgba(32,213,255,.16), rgba(168,85,247,.12)),
-                rgba(255,255,255,.06);
-            box-shadow: 0 24px 80px rgba(0,0,0,.28);
+                radial-gradient(circle at 86% 12%, rgba(32,213,255,.22), transparent 27%),
+                radial-gradient(circle at 12% 88%, rgba(82,255,168,.09), transparent 30%),
+                linear-gradient(135deg, rgba(12,35,58,.96), rgba(8,25,42,.94));
+            box-shadow: 0 28px 90px rgba(0,0,0,.36);
+        }
+        .hero::before {
+            content: '';
+            position: absolute; inset: 0;
+            background-image:
+                linear-gradient(rgba(255,255,255,.022) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,.022) 1px, transparent 1px);
+            background-size: 34px 34px;
+            mask-image: linear-gradient(to right, black, transparent 90%);
+            pointer-events: none;
         }
         .hero::after {
             content: '';
-            position: absolute; inset: -80px -120px auto auto;
-            width: 340px; height: 340px; border-radius: 999px;
-            background: rgba(32,213,255,.2); filter: blur(50px);
+            position: absolute; inset: -110px -130px auto auto;
+            width: 390px; height: 390px; border-radius: 999px;
+            background: rgba(32,213,255,.19); filter: blur(58px);
+            pointer-events: none;
         }
+        .hero-grid { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(280px, .65fr); align-items: stretch; position: relative; z-index: 1; }
+        .hero-copy { padding: 46px 44px 42px; }
+        .hero-brand { display: flex; align-items: center; gap: 18px; margin-bottom: 26px; }
+        .hero-logo { width: 92px; height: 92px; object-fit: contain; filter: drop-shadow(0 18px 25px rgba(0,0,0,.26)); }
+        .hero-brand strong { display: block; font-size: 29px; letter-spacing: 4px; }
+        .hero-brand small { display: block; color: var(--muted); margin-top: 5px; font-weight: 700; }
+        .hero-panel {
+            min-height: 100%; padding: 34px;
+            border-left: 1px solid var(--stroke);
+            background: linear-gradient(180deg, rgba(255,255,255,.065), rgba(255,255,255,.025));
+            display: flex; flex-direction: column; justify-content: center;
+        }
+        .signal-orb { width: 205px; height: 205px; margin: 0 auto 26px; position: relative; display: grid; place-items: center; }
+        .signal-orb::before, .signal-orb::after {
+            content: ''; position: absolute; border-radius: 50%; border: 1px solid rgba(32,213,255,.32);
+            animation: pulse 3.4s ease-in-out infinite;
+        }
+        .signal-orb::before { width: 100%; height: 100%; }
+        .signal-orb::after { width: 78%; height: 78%; animation-delay: .8s; }
+        .signal-core {
+            width: 118px; height: 118px; border-radius: 50%; display: grid; place-items: center; text-align: center;
+            background: radial-gradient(circle at 30% 25%, rgba(82,255,168,.42), rgba(32,213,255,.16) 55%, rgba(53,135,255,.10));
+            border: 1px solid rgba(82,255,168,.35); box-shadow: 0 0 54px rgba(32,213,255,.22);
+        }
+        .signal-core b { font-size: 23px; }
+        .signal-core small { display: block; color: var(--muted); margin-top: 4px; }
+        @keyframes pulse { 0%,100% { transform: scale(.92); opacity: .42; } 50% { transform: scale(1.06); opacity: 1; } }
+        .hero-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .hero-meta div { padding: 12px 13px; border-radius: 15px; background: rgba(255,255,255,.055); border: 1px solid var(--stroke); }
+        .hero-meta span { display: block; color: var(--muted); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .7px; }
+        .hero-meta b { display: block; margin-top: 6px; font-size: 14px; }
+        .feature-chips { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 22px; }
+        .feature-chip { padding: 8px 11px; border-radius: 999px; color: #cfe9f9; background: rgba(255,255,255,.055); border: 1px solid var(--stroke); font-size: 12px; font-weight: 800; }
         .eyebrow {
             display: inline-flex; gap: 8px; align-items: center;
             padding: 8px 12px; border-radius: 999px;
@@ -442,15 +489,27 @@ TEMPLATE = r'''
         .status-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
         .pill-card { padding: 18px; border: 1px solid var(--stroke); border-radius: 22px; background: rgba(255,255,255,.06); }
         .pill-card b { display: block; font-size: 20px; margin-top: 8px; }
+        .architecture { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; align-items: stretch; }
+        .arch-node { position: relative; padding: 21px; border: 1px solid var(--stroke); border-radius: 22px; background: rgba(255,255,255,.06); min-height: 150px; }
+        .arch-node:not(:last-child)::after { content: '→'; position: absolute; right: -22px; top: 50%; transform: translateY(-50%); color: var(--cyan); font-weight: 900; z-index: 3; }
+        .arch-icon { width: 42px; height: 42px; border-radius: 13px; display: grid; place-items: center; background: rgba(32,213,255,.11); border: 1px solid rgba(32,213,255,.20); font-size: 20px; }
+        .arch-node h4 { margin: 15px 0 7px; }
+        .arch-node p { color: var(--muted); margin: 0; font-size: 13px; line-height: 1.5; }
+        .ods-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+        .ods { padding: 10px 13px; border-radius: 13px; background: rgba(82,255,168,.07); color: #caffdf; border: 1px solid rgba(82,255,168,.18); font-size: 12px; font-weight: 800; }
         footer { margin: 40px 0 10px; color: var(--muted); text-align: center; }
         @media (max-width: 1050px) {
             .layout { grid-template-columns: 1fr; }
             aside { position: relative; height: auto; }
             nav { display: flex; gap: 8px; overflow-x: auto; }
             nav a { white-space: nowrap; }
-            .grid.kpis, .grid.charts, .predict-grid, .status-row { grid-template-columns: 1fr; }
+            .grid.kpis, .grid.charts, .predict-grid, .status-row, .architecture { grid-template-columns: 1fr; }
+            .arch-node:not(:last-child)::after { content: '↓'; right: 50%; top: auto; bottom: -24px; transform: translateX(50%); }
             main { padding: 20px; }
-            .hero { padding: 28px; }
+            .hero-grid { grid-template-columns: 1fr; }
+            .hero-copy { padding: 30px 25px; }
+            .hero-panel { border-left: 0; border-top: 1px solid var(--stroke); }
+            .hero h2 { font-size: clamp(38px, 12vw, 62px); letter-spacing: -2.5px; }
         }
     </style>
 </head>
@@ -458,10 +517,10 @@ TEMPLATE = r'''
 <div class="layout">
     <aside>
         <div class="brand">
-            <div class="logo">A</div>
+            <img src="{{ url_for('static', filename='logo.png') }}" class="brand-logo" alt="Logo de AERIS">
             <div>
                 <h1>AERIS</h1>
-                <small>Respiratory Risk AI</small>
+                <small>Air Intelligence<br>Respiratory Risk</small>
             </div>
         </div>
         <nav>
@@ -475,15 +534,36 @@ TEMPLATE = r'''
 
     <main>
         <section id="inicio" class="hero">
-            <div class="eyebrow">● Sistema desplegado en Contabo VPS</div>
-            <h2>Monitoreo inteligente del aire en Querétaro.</h2>
-            <p>
-                AERIS integra ciencia de datos, infraestructura cloud y modelos predictivos para analizar la relación entre contaminantes atmosféricos,
-                crecimiento industrial y riesgo respiratorio en la Zona Metropolitana de Querétaro.
-            </p>
-            <div class="hero-actions">
-                <a class="btn" href="#prediccion">Probar predicción IA</a>
-                <a class="btn secondary" href="/health">Ver estado API</a>
+            <div class="hero-grid">
+                <div class="hero-copy">
+                    <div class="hero-brand">
+                        <img src="{{ url_for('static', filename='logo.png') }}" class="hero-logo" alt="AERIS">
+                        <div><strong>AERIS</strong><small>Inteligencia ambiental para Querétaro</small></div>
+                    </div>
+                    <div class="eyebrow">● CLOUD SYSTEM ONLINE · CONTABO VPS</div>
+                    <h2>Convertimos el aire en datos. Los datos en prevención.</h2>
+                    <p>
+                        Plataforma inteligente de análisis y predicción de riesgo respiratorio que integra contaminantes atmosféricos,
+                        variables ambientales y crecimiento industrial para estudiar la evolución de la calidad del aire en Querétaro.
+                    </p>
+                    <div class="feature-chips">
+                        <span class="feature-chip">PM2.5</span><span class="feature-chip">PM10</span><span class="feature-chip">NO₂</span>
+                        <span class="feature-chip">O₃</span><span class="feature-chip">Machine Learning</span><span class="feature-chip">Cloud Analytics</span>
+                    </div>
+                    <div class="hero-actions">
+                        <a class="btn" href="#prediccion">Ejecutar predicción IA</a>
+                        <a class="btn secondary" href="#analisis">Explorar inteligencia ambiental</a>
+                    </div>
+                </div>
+                <div class="hero-panel">
+                    <div class="signal-orb"><div class="signal-core"><div><b>AERIS</b><small>Signal engine</small></div></div></div>
+                    <div class="hero-meta">
+                        <div><span>Infraestructura</span><b>Cloud VPS</b></div>
+                        <div><span>Motor</span><b>Random Forest</b></div>
+                        <div><span>Cobertura</span><b>{{ resumen.municipios_total }} municipios</b></div>
+                        <div><span>Periodo</span><b>{{ resumen.anio_min }}–{{ resumen.anio_max }}</b></div>
+                    </div>
+                </div>
             </div>
         </section>
 
@@ -574,8 +654,28 @@ TEMPLATE = r'''
             </div>
         </section>
 
+        <section id="infraestructura">
+            <div class="section-title">
+                <div>
+                    <h3>Arquitectura cloud de AERIS</h3>
+                    <p>El flujo del proyecto está preparado para crecer desde la adquisición de datos hasta la visualización predictiva.</p>
+                </div>
+            </div>
+            <div class="architecture">
+                <div class="arch-node"><div class="arch-icon">🌫️</div><h4>Fuentes ambientales</h4><p>Calidad del aire, contaminantes y variables ambientales que alimentan el análisis.</p></div>
+                <div class="arch-node"><div class="arch-icon">☁️</div><h4>Capa cloud</h4><p>Infraestructura desplegada en VPS y preparada para sincronización con almacenamiento en nube.</p></div>
+                <div class="arch-node"><div class="arch-icon">🧠</div><h4>Motor analítico</h4><p>EDA, tendencias, comparación municipal y clasificación predictiva de riesgo.</p></div>
+                <div class="arch-node"><div class="arch-icon">📡</div><h4>AERIS Dashboard</h4><p>Visualización web accesible desde Internet para comunicar indicadores y resultados.</p></div>
+            </div>
+            <div class="ods-row">
+                <span class="ods">ODS 3 · Salud y Bienestar</span>
+                <span class="ods">ODS 11 · Ciudades Sostenibles</span>
+                <span class="ods">ODS 13 · Acción por el Clima</span>
+            </div>
+        </section>
+
         <footer>
-            AERIS · Proyecto Integrador II · David Israel Atilano Quiroz · UPQ · Desplegado en Contabo VPS
+            AERIS · Proyecto Integrador II · David Israel Atilano Quiroz · Ingeniería en Datos e Inteligencia Artificial · UPQ
         </footer>
     </main>
 </div>
