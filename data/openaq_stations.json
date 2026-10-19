@@ -1,0 +1,2289 @@
+{
+  "fuente": "OpenAQ API v3",
+  "fecha_consulta_utc": "2026-10-17T18:43:10.070872+00:00",
+  "region": "Querétaro (área aproximada)",
+  "contaminante": "PM2.5",
+  "total_estaciones": 16,
+  "estaciones": [
+    {
+      "id": 6919,
+      "name": "Estación San Luis de",
+      "locality": "GUANAJUATO",
+      "timezone": "America/Mexico_City",
+      "country": {
+        "id": 157,
+        "code": "MX",
+        "name": "Mexico"
+      },
+      "owner": {
+        "id": 4,
+        "name": "Unknown Governmental Organization"
+      },
+      "provider": {
+        "id": 119,
+        "name": "AirNow"
+      },
+      "isMobile": false,
+      "isMonitor": true,
+      "instruments": [
+        {
+          "id": 2,
+          "name": "Government Monitor"
+        }
+      ],
+      "sensors": [
+        {
+          "id": 19866,
+          "name": "pm25 µg/m³",
+          "parameter": {
+            "id": 2,
+            "name": "pm25",
+            "units": "µg/m³",
+            "displayName": "PM2.5"
+          }
+        }
+      ],
+      "coordinates": {
+        "latitude": 21.298874,
+        "longitude": -100.51557
+      },
+      "licenses": [
+        {
+          "id": 33,
+          "name": "US Public Domain",
+          "attribution": {
+            "name": "Unknown Governmental Organization",
+            "url": null
+          },
+          "dateFrom": "2016-01-30",
+          "dateTo": null
+        }
+      ],
+      "bounds": [
+        -100.51557,
+        21.298874,
+        -100.51557,
+        21.298874
+      ],
+      "distance": null,
+      "datetimeFirst": {
+        "utc": "2017-10-12T03:00:00Z",
+        "local": "2017-10-11T22:00:00-05:00"
+      },
+      "datetimeLast": {
+        "utc": "2026-09-10T22:00:00Z",
+        "local": "2026-09-10T16:00:00-06:00"
+      }
+    },
+    {
+      "id": 10873,
+      "name": "Presidencia Municipal",
+      "locality": "San Luis de la Paz",
+      "timezone": "America/Mexico_City",
+      "country": {
+        "id": 157,
+        "code": "MX",
+        "name": "Mexico"
+      },
+      "owner": {
+        "id": 4,
+        "name": "Unknown Governmental Organization"
+      },
+      "provider": {
+        "id": 223,
+        "name": "Sinaica Mexico"
+      },
+      "isMobile": false,
+      "isMonitor": true,
+      "instruments": [
+        {
+          "id": 2,
+          "name": "Government Monitor"
+        }
+      ],
+      "sensors": [
+        {
+          "id": 36403,
+          "name": "pm25 µg/m³",
+          "parameter": {
+            "id": 2,
+            "name": "pm25",
+            "units": "µg/m³",
+            "displayName": "PM2.5"
+          }
+        }
+      ],
+      "coordinates": {
+        "latitude": 21.295861111111,
+        "longitude": -100.52330555556
+      },
+      "licenses": [
+        {
+          "id": 36,
+          "name": "Mexico SINAICA Terms and Conditions",
+          "attribution": {
+            "name": "Unknown Governmental Organization",
+            "url": null
+          },
+          "dateFrom": "2016-03-07",
+          "dateTo": null
+        }
+      ],
+      "bounds": [
+        -100.52330555556,
+        21.295861111111,
+        -100.52330555556,
+        21.295861111111
+      ],
+      "distance": null,
+      "datetimeFirst": {
+        "utc": "2020-10-16T00:00:00Z",
+        "local": "2020-10-15T19:00:00-05:00"
+      },
+      "datetimeLast": {
+        "utc": "2026-10-16T19:00:00Z",
+        "local": "2026-10-16T13:00:00-06:00"
+      }
+    },
+    {
+      "id": 10884,
+      "name": "Primaria Revolución",
+      "locality": "Atotonilco de Tula",
+      "timezone": "America/Mexico_City",
+      "country": {
+        "id": 157,
+        "code": "MX",
+        "name": "Mexico"
+      },
+      "owner": {
+        "id": 4,
+        "name": "Unknown Governmental Organization"
+      },
+      "provider": {
+        "id": 223,
+        "name": "Sinaica Mexico"
+      },
+      "isMobile": false,
+      "isMonitor": true,
+      "instruments": [
+        {
+          "id": 2,
+          "name": "Government Monitor"
+        }
+      ],
+      "sensors": [
+        {
+          "id": 36444,
+          "name": "co ppm",
+          "parameter": {
+            "id": 8,
+            "name": "co",
+            "units": "ppm",
+            "displayName": "CO"
+          }
+        },
+        {
+          "id": 4276012,
+          "name": "no ppm",
+          "parameter": {
+            "id": 35,
+            "name": "no",
+            "units": "ppm",
+            "displayName": "NO"
+          }
+        },
+        {
+          "id": 36448,
+          "name": "no2 ppm",
+          "parameter": {
+            "id": 7,
+            "name": "no2",
+            "units": "ppm",
+            "displayName": "NO₂"
+          }
+        },
+        {
+          "id": 4275904,
+          "name": "nox ppm",
+          "parameter": {
+            "id": 19840,
+            "name": "nox",
+            "units": "ppm",
+            "displayName": "NOx"
+          }
+        },
+        {
+          "id": 36450,
+          "name": "o3 ppm",
+          "parameter": {
+            "id": 10,
+            "name": "o3",
+            "units": "ppm",
+            "displayName": "O₃"
+          }
+        },
+        {
+          "id": 36462,
+          "name": "pm10 µg/m³",
+          "parameter": {
+            "id": 1,
+            "name": "pm10",
+            "units": "µg/m³",
+            "displayName": "PM10"
+          }
+        },
+        {
+          "id": 36463,
+          "name": "pm25 µg/m³",
+          "parameter": {
+            "id": 2,
+            "name": "pm25",
+            "units": "µg/m³",
+            "displayName": "PM2.5"
+          }
+        },
+        {
+          "id": 36452,
+          "name": "so2 ppm",
+          "parameter": {
+            "id": 9,
+            "name": "so2",
+            "units": "ppm",
+            "displayName": "SO₂"
+          }
+        }
+      ],
+      "coordinates": {
+        "latitude": 20.006666666667,
+        "longitude": -99.218888888889
+      },
+      "licenses": [
+        {
+          "id": 36,
+          "name": "Mexico SINAICA Terms and Conditions",
+          "attribution": {
+            "name": "Unknown Governmental Organization",
+            "url": null
+          },
+          "dateFrom": "2016-03-07",
+          "dateTo": null
+        }
+      ],
+      "bounds": [
+        -99.218888888889,
+        20.006666666667,
+        -99.218888888889,
+        20.006666666667
+      ],
+      "distance": null,
+      "datetimeFirst": {
+        "utc": "2020-10-16T01:00:00Z",
+        "local": "2020-10-15T20:00:00-05:00"
+      },
+      "datetimeLast": {
+        "utc": "2026-10-17T18:00:00Z",
+        "local": "2026-10-17T12:00:00-06:00"
+      }
+    },
+    {
+      "id": 10889,
+      "name": "Hospital",
+      "locality": "Huichapan",
+      "timezone": "America/Mexico_City",
+      "country": {
+        "id": 157,
+        "code": "MX",
+        "name": "Mexico"
+      },
+      "owner": {
+        "id": 4,
+        "name": "Unknown Governmental Organization"
+      },
+      "provider": {
+        "id": 223,
+        "name": "Sinaica Mexico"
+      },
+      "isMobile": false,
+      "isMonitor": true,
+      "instruments": [
+        {
+          "id": 2,
+          "name": "Government Monitor"
+        }
+      ],
+      "sensors": [
+        {
+          "id": 36479,
+          "name": "co ppm",
+          "parameter": {
+            "id": 8,
+            "name": "co",
+            "units": "ppm",
+            "displayName": "CO"
+          }
+        },
+        {
+          "id": 4276033,
+          "name": "no ppm",
+          "parameter": {
+            "id": 35,
+            "name": "no",
+            "units": "ppm",
+            "displayName": "NO"
+          }
+        },
+        {
+          "id": 36477,
+          "name": "no2 ppm",
+          "parameter": {
+            "id": 7,
+            "name": "no2",
+            "units": "ppm",
+            "displayName": "NO₂"
+          }
+        },
+        {
+          "id": 4275668,
+          "name": "nox ppm",
+          "parameter": {
+            "id": 19840,
+            "name": "nox",
+            "units": "ppm",
+            "displayName": "NOx"
+          }
+        },
+        {
+          "id": 36476,
+          "name": "o3 ppm",
+          "parameter": {
+            "id": 10,
+            "name": "o3",
+            "units": "ppm",
+            "displayName": "O₃"
+          }
+        },
+        {
+          "id": 40605,
+          "name": "pm10 µg/m³",
+          "parameter": {
+            "id": 1,
+            "name": "pm10",
+            "units": "µg/m³",
+            "displayName": "PM10"
+          }
+        },
+        {
+          "id": 36472,
+          "name": "pm25 µg/m³",
+          "parameter": {
+            "id": 2,
+            "name": "pm25",
+            "units": "µg/m³",
+            "displayName": "PM2.5"
+          }
+        },
+        {
+          "id": 36475,
+          "name": "so2 ppm",
+          "parameter": {
+            "id": 9,
+            "name": "so2",
+            "units": "ppm",
+            "displayName": "SO₂"
+          }
+        }
+      ],
+      "coordinates": {
+        "latitude": 20.375111111111,
+        "longitude": -99.654444444444
+      },
+      "licenses": [
+        {
+          "id": 36,
+          "name": "Mexico SINAICA Terms and Conditions",
+          "attribution": {
+            "name": "Unknown Governmental Organization",
+            "url": null
+          },
+          "dateFrom": "2016-03-07",
+          "dateTo": null
+        }
+      ],
+      "bounds": [
+        -99.654444444444,
+        20.375111111111,
+        -99.654444444444,
+        20.375111111111
+      ],
+      "distance": null,
+      "datetimeFirst": {
+        "utc": "2020-10-20T17:00:00Z",
+        "local": "2020-10-20T12:00:00-05:00"
+      },
+      "datetimeLast": {
+        "utc": "2026-10-17T18:00:00Z",
+        "local": "2026-10-17T12:00:00-06:00"
+      }
+    },
+    {
+      "id": 235220,
+      "name": "Carrillo Puerto",
+      "locality": "Querétaro",
+      "timezone": "America/Mexico_City",
+      "country": {
+        "id": 157,
+        "code": "MX",
+        "name": "Mexico"
+      },
+      "owner": {
+        "id": 4,
+        "name": "Unknown Governmental Organization"
+      },
+      "provider": {
+        "id": 223,
+        "name": "Sinaica Mexico"
+      },
+      "isMobile": false,
+      "isMonitor": true,
+      "instruments": [
+        {
+          "id": 2,
+          "name": "Government Monitor"
+        },
+        {
+          "id": 2,
+          "name": "Government Monitor"
+        }
+      ],
+      "sensors": [
+        {
+          "id": 16318682,
+          "name": "co ppb",
+          "parameter": {
+            "id": 102,
+            "name": "co",
+            "units": "ppb",
+            "displayName": "CO"
+          }
+        },
+        {
+          "id": 1352674,
+          "name": "co ppm",
+          "parameter": {
+            "id": 8,
+            "name": "co",
+            "units": "ppm",
+            "displayName": "CO"
+          }
+        },
+        {
+          "id": 16318683,
+          "name": "no ppb",
+          "parameter": {
+            "id": 24,
+            "name": "no",
+            "units": "ppb",
+            "displayName": "NO"
+          }
+        },
+        {
+          "id": 4275673,
+          "name": "no ppm",
+          "parameter": {
+            "id": 35,
+            "name": "no",
+            "units": "ppm",
+            "displayName": "NO"
+          }
+        },
+        {
+          "id": 16318684,
+          "name": "no2 ppb",
+          "parameter": {
+            "id": 15,
+            "name": "no2",
+            "units": "ppb",
+            "displayName": "NO₂"
+          }
+        },
+        {
+          "id": 1352673,
+          "name": "no2 ppm",
+          "parameter": {
+            "id": 7,
+            "name": "no2",
+            "units": "ppm",
+            "displayName": "NO₂"
+          }
+        },
+        {
+          "id": 16318685,
+          "name": "nox ppb",
+          "parameter": {
+            "id": 23,
+            "name": "nox",
+            "units": "ppb",
+            "displayName": "NOX"
+          }
+        },
+        {
+          "id": 4275759,
+          "name": "nox ppm",
+          "parameter": {
+            "id": 19840,
+            "name": "nox",
+            "units": "ppm",
+            "displayName": "NOx"
+          }
+        },
+        {
+          "id": 1352661,
+          "name": "o3 ppm",
+          "parameter": {
+            "id": 10,
+            "name": "o3",
+            "units": "ppm",
+            "displayName": "O₃"
+          }
+        },
+        {
+          "id": 16318686,
+          "name": "o3 µg/m³",
+          "parameter": {
+            "id": 3,
+            "name": "o3",
+            "units": "µg/m³",
+            "displayName": "O₃ mass"
+          }
+        },
+        {
+          "id": 1352647,
+          "name": "pm10 µg/m³",
+          "parameter": {
+            "id": 1,
+            "name": "pm10",
+            "units": "µg/m³",
+            "displayName": "PM10"
+          }
+        },
+        {
+          "id": 16318687,
+          "name": "pm10 µg/m³",
+          "parameter": {
+            "id": 1,
+            "name": "pm10",
+            "units": "µg/m³",
+            "displayName": "PM10"
+          }
+        },
+        {
+          "id": 8956473,
+          "name": "pm25 µg/m³",
+          "parameter": {
+            "id": 2,
+            "name": "pm25",
+            "units": "µg/m³",
+            "displayName": "PM2.5"
+          }
+        },
+        {
+          "id": 16318688,
+          "name": "pm25 µg/m³",
+          "parameter": {
+            "id": 2,
+            "name": "pm25",
+            "units": "µg/m³",
+            "displayName": "PM2.5"
+          }
+        },
+        {
+          "id": 16318689,
+          "name": "so2 ppb",
+          "parameter": {
+            "id": 101,
+            "name": "so2",
+            "units": "ppb",
+            "displayName": "SO₂"
+          }
+        },
+        {
+          "id": 1352657,
+          "name": "so2 ppm",
+          "parameter": {
+            "id": 9,
+            "name": "so2",
+            "units": "ppm",
+            "displayName": "SO₂"
+          }
+        }
+      ],
+      "coordinates": {
+        "latitude": 20.610597222222,
+        "longitude": -100.43759722222
+      },
+      "licenses": [
+        {
+          "id": 36,
+          "name": "Mexico SINAICA Terms and Conditions",
+          "attribution": {
+            "name": "Unknown Governmental Organization",
+            "url": null
+          },
+          "dateFrom": "2016-03-07",
+          "dateTo": null
+        }
+      ],
+      "bounds": [
+        -100.43759722222,
+        20.610597222222,
+        -100.43759722222,
+        20.610597222222
+      ],
+      "distance": null,
+      "datetimeFirst": {
+        "utc": "2021-09-07T21:00:00Z",
+        "local": "2021-09-07T16:00:00-05:00"
+      },
+      "datetimeLast": {
+        "utc": "2026-10-17T18:00:00Z",
+        "local": "2026-10-17T12:00:00-06:00"
+      }
+    },
+    {
+      "id": 235221,
+      "name": "El Marqués",
+      "locality": null,
+      "timezone": "America/Mexico_City",
+      "country": {
+        "id": 157,
+        "code": "MX",
+        "name": "Mexico"
+      },
+      "owner": {
+        "id": 4,
+        "name": "Unknown Governmental Organization"
+      },
+      "provider": {
+        "id": 223,
+        "name": "Sinaica Mexico"
+      },
+      "isMobile": false,
+      "isMonitor": true,
+      "instruments": [
+        {
+          "id": 2,
+          "name": "Government Monitor"
+        }
+      ],
+      "sensors": [
+        {
+          "id": 1352665,
+          "name": "co ppm",
+          "parameter": {
+            "id": 8,
+            "name": "co",
+            "units": "ppm",
+            "displayName": "CO"
+          }
+        },
+        {
+          "id": 1352682,
+          "name": "no2 ppm",
+          "parameter": {
+            "id": 7,
+            "name": "no2",
+            "units": "ppm",
+            "displayName": "NO₂"
+          }
+        },
+        {
+          "id": 1352654,
+          "name": "o3 ppm",
+          "parameter": {
+            "id": 10,
+            "name": "o3",
+            "units": "ppm",
+            "displayName": "O₃"
+          }
+        },
+        {
+          "id": 1352686,
+          "name": "pm25 µg/m³",
+          "parameter": {
+            "id": 2,
+            "name": "pm25",
+            "units": "µg/m³",
+            "displayName": "PM2.5"
+          }
+        },
+        {
+          "id": 1352704,
+          "name": "so2 ppm",
+          "parameter": {
+            "id": 9,
+            "name": "so2",
+            "units": "ppm",
+            "displayName": "SO₂"
+          }
+        }
+      ],
+      "coordinates": {
+        "latitude": 20.605872222222,
+        "longitude": -100.33229166667
+      },
+      "licenses": [
+        {
+          "id": 36,
+          "name": "Mexico SINAICA Terms and Conditions",
+          "attribution": {
+            "name": "Unknown Governmental Organization",
+            "url": null
+          },
+          "dateFrom": "2016-03-07",
+          "dateTo": null
+        }
+      ],
+      "bounds": [
+        -100.33229166667,
+        20.605872222222,
+        -100.33229166667,
+        20.605872222222
+      ],
+      "distance": null,
+      "datetimeFirst": {
+        "utc": "2021-09-07T21:00:00Z",
+        "local": "2021-09-07T16:00:00-05:00"
+      },
+      "datetimeLast": {
+        "utc": "2021-09-23T11:00:00Z",
+        "local": "2021-09-23T06:00:00-05:00"
+      }
+    },
+    {
+      "id": 235224,
+      "name": "Josefa Vergara",
+      "locality": "Querétaro",
+      "timezone": "America/Mexico_City",
+      "country": {
+        "id": 157,
+        "code": "MX",
+        "name": "Mexico"
+      },
+      "owner": {
+        "id": 4,
+        "name": "Unknown Governmental Organization"
+      },
+      "provider": {
+        "id": 223,
+        "name": "Sinaica Mexico"
+      },
+      "isMobile": false,
+      "isMonitor": true,
+      "instruments": [
+        {
+          "id": 2,
+          "name": "Government Monitor"
+        },
+        {
+          "id": 2,
+          "name": "Government Monitor"
+        }
+      ],
+      "sensors": [
+        {
+          "id": 1352685,
+          "name": "co ppm",
+          "parameter": {
+            "id": 8,
+            "name": "co",
+            "units": "ppm",
+            "displayName": "CO"
+          }
+        },
+        {
+          "id": 16318887,
+          "name": "co ppb",
+          "parameter": {
+            "id": 102,
+            "name": "co",
+            "units": "ppb",
+            "displayName": "CO"
+          }
+        },
+        {
+          "id": 16318888,
+          "name": "no2 ppb",
+          "parameter": {
+            "id": 15,
+            "name": "no2",
+            "units": "ppb",
+            "displayName": "NO₂"
+          }
+        },
+        {
+          "id": 1352648,
+          "name": "no2 ppm",
+          "parameter": {
+            "id": 7,
+            "name": "no2",
+            "units": "ppm",
+            "displayName": "NO₂"
+          }
+        },
+        {
+          "id": 1352650,
+          "name": "o3 ppm",
+          "parameter": {
+            "id": 10,
+            "name": "o3",
+            "units": "ppm",
+            "displayName": "O₃"
+          }
+        },
+        {
+          "id": 16318889,
+          "name": "o3 µg/m³",
+          "parameter": {
+            "id": 3,
+            "name": "o3",
+            "units": "µg/m³",
+            "displayName": "O₃ mass"
+          }
+        },
+        {
+          "id": 1352719,
+          "name": "pm25 µg/m³",
+          "parameter": {
+            "id": 2,
+            "name": "pm25",
+            "units": "µg/m³",
+            "displayName": "PM2.5"
+          }
+        },
+        {
+          "id": 1352715,
+          "name": "so2 ppm",
+          "parameter": {
+            "id": 9,
+            "name": "so2",
+            "units": "ppm",
+            "displayName": "SO₂"
+          }
+        },
+        {
+          "id": 16318890,
+          "name": "so2 ppb",
+          "parameter": {
+            "id": 101,
+            "name": "so2",
+            "units": "ppb",
+            "displayName": "SO₂"
+          }
+        }
+      ],
+      "coordinates": {
+        "latitude": 20.565863888889,
+        "longitude": -100.38918611111
+      },
+      "licenses": [
+        {
+          "id": 36,
+          "name": "Mexico SINAICA Terms and Conditions",
+          "attribution": {
+            "name": "Unknown Governmental Organization",
+            "url": null
+          },
+          "dateFrom": "2016-03-07",
+          "dateTo": null
+        }
+      ],
+      "bounds": [
+        -100.38918611111,
+        20.565863888889,
+        -100.38918611111,
+        20.565863888889
+      ],
+      "distance": null,
+      "datetimeFirst": {
+        "utc": "2021-09-07T21:00:00Z",
+        "local": "2021-09-07T16:00:00-05:00"
+      },
+      "datetimeLast": {
+        "utc": "2026-10-17T18:00:00Z",
+        "local": "2026-10-17T12:00:00-06:00"
+      }
+    },
+    {
+      "id": 235225,
+      "name": "Corregidora",
+      "locality": "Corregidora",
+      "timezone": "America/Mexico_City",
+      "country": {
+        "id": 157,
+        "code": "MX",
+        "name": "Mexico"
+      },
+      "owner": {
+        "id": 4,
+        "name": "Unknown Governmental Organization"
+      },
+      "provider": {
+        "id": 223,
+        "name": "Sinaica Mexico"
+      },
+      "isMobile": false,
+      "isMonitor": true,
+      "instruments": [
+        {
+          "id": 2,
+          "name": "Government Monitor"
+        },
+        {
+          "id": 2,
+          "name": "Government Monitor"
+        }
+      ],
+      "sensors": [
+        {
+          "id": 16318740,
+          "name": "co ppb",
+          "parameter": {
+            "id": 102,
+            "name": "co",
+            "units": "ppb",
+            "displayName": "CO"
+          }
+        },
+        {
+          "id": 1352696,
+          "name": "co ppm",
+          "parameter": {
+            "id": 8,
+            "name": "co",
+            "units": "ppm",
+            "displayName": "CO"
+          }
+        },
+        {
+          "id": 16318741,
+          "name": "no2 ppb",
+          "parameter": {
+            "id": 15,
+            "name": "no2",
+            "units": "ppb",
+            "displayName": "NO₂"
+          }
+        },
+        {
+          "id": 1352708,
+          "name": "no2 ppm",
+          "parameter": {
+            "id": 7,
+            "name": "no2",
+            "units": "ppm",
+            "displayName": "NO₂"
+          }
+        },
+        {
+          "id": 16318742,
+          "name": "o3 µg/m³",
+          "parameter": {
+            "id": 3,
+            "name": "o3",
+            "units": "µg/m³",
+            "displayName": "O₃ mass"
+          }
+        },
+        {
+          "id": 1352705,
+          "name": "o3 ppm",
+          "parameter": {
+            "id": 10,
+            "name": "o3",
+            "units": "ppm",
+            "displayName": "O₃"
+          }
+        },
+        {
+          "id": 16318743,
+          "name": "pm25 µg/m³",
+          "parameter": {
+            "id": 2,
+            "name": "pm25",
+            "units": "µg/m³",
+            "displayName": "PM2.5"
+          }
+        },
+        {
+          "id": 1352676,
+          "name": "pm25 µg/m³",
+          "parameter": {
+            "id": 2,
+            "name": "pm25",
+            "units": "µg/m³",
+            "displayName": "PM2.5"
+          }
+        },
+        {
+          "id": 1352652,
+          "name": "so2 ppm",
+          "parameter": {
+            "id": 9,
+            "name": "so2",
+            "units": "ppm",
+            "displayName": "SO₂"
+          }
+        },
+        {
+          "id": 16318744,
+          "name": "so2 ppb",
+          "parameter": {
+            "id": 101,
+            "name": "so2",
+            "units": "ppb",
+            "displayName": "SO₂"
+          }
+        }
+      ],
+      "coordinates": {
+        "latitude": 20.552563888889,
+        "longitude": -100.44580555556
+      },
+      "licenses": [
+        {
+          "id": 36,
+          "name": "Mexico SINAICA Terms and Conditions",
+          "attribution": {
+            "name": "Unknown Governmental Organization",
+            "url": null
+          },
+          "dateFrom": "2016-03-07",
+          "dateTo": null
+        }
+      ],
+      "bounds": [
+        -100.44580555556,
+        20.552563888889,
+        -100.44580555556,
+        20.552563888889
+      ],
+      "distance": null,
+      "datetimeFirst": {
+        "utc": "2021-09-07T21:00:00Z",
+        "local": "2021-09-07T16:00:00-05:00"
+      },
+      "datetimeLast": {
+        "utc": "2026-10-17T18:00:00Z",
+        "local": "2026-10-17T12:00:00-06:00"
+      }
+    },
+    {
+      "id": 235232,
+      "name": "San Juan del Río",
+      "locality": "San Juan del Río",
+      "timezone": "America/Mexico_City",
+      "country": {
+        "id": 157,
+        "code": "MX",
+        "name": "Mexico"
+      },
+      "owner": {
+        "id": 4,
+        "name": "Unknown Governmental Organization"
+      },
+      "provider": {
+        "id": 223,
+        "name": "Sinaica Mexico"
+      },
+      "isMobile": false,
+      "isMonitor": true,
+      "instruments": [
+        {
+          "id": 2,
+          "name": "Government Monitor"
+        }
+      ],
+      "sensors": [
+        {
+          "id": 16319111,
+          "name": "co ppb",
+          "parameter": {
+            "id": 102,
+            "name": "co",
+            "units": "ppb",
+            "displayName": "CO"
+          }
+        },
+        {
+          "id": 1352671,
+          "name": "co ppm",
+          "parameter": {
+            "id": 8,
+            "name": "co",
+            "units": "ppm",
+            "displayName": "CO"
+          }
+        },
+        {
+          "id": 4275708,
+          "name": "no ppm",
+          "parameter": {
+            "id": 35,
+            "name": "no",
+            "units": "ppm",
+            "displayName": "NO"
+          }
+        },
+        {
+          "id": 16319112,
+          "name": "no ppb",
+          "parameter": {
+            "id": 24,
+            "name": "no",
+            "units": "ppb",
+            "displayName": "NO"
+          }
+        },
+        {
+          "id": 1352664,
+          "name": "no2 ppm",
+          "parameter": {
+            "id": 7,
+            "name": "no2",
+            "units": "ppm",
+            "displayName": "NO₂"
+          }
+        },
+        {
+          "id": 16319113,
+          "name": "no2 ppb",
+          "parameter": {
+            "id": 15,
+            "name": "no2",
+            "units": "ppb",
+            "displayName": "NO₂"
+          }
+        },
+        {
+          "id": 16319114,
+          "name": "nox ppb",
+          "parameter": {
+            "id": 23,
+            "name": "nox",
+            "units": "ppb",
+            "displayName": "NOX"
+          }
+        },
+        {
+          "id": 4275702,
+          "name": "nox ppm",
+          "parameter": {
+            "id": 19840,
+            "name": "nox",
+            "units": "ppm",
+            "displayName": "NOx"
+          }
+        },
+        {
+          "id": 1352688,
+          "name": "o3 ppm",
+          "parameter": {
+            "id": 10,
+            "name": "o3",
+            "units": "ppm",
+            "displayName": "O₃"
+          }
+        },
+        {
+          "id": 16319115,
+          "name": "o3 µg/m³",
+          "parameter": {
+            "id": 3,
+            "name": "o3",
+            "units": "µg/m³",
+            "displayName": "O₃ mass"
+          }
+        },
+        {
+          "id": 1352718,
+          "name": "pm25 µg/m³",
+          "parameter": {
+            "id": 2,
+            "name": "pm25",
+            "units": "µg/m³",
+            "displayName": "PM2.5"
+          }
+        },
+        {
+          "id": 16319116,
+          "name": "pm25 µg/m³",
+          "parameter": {
+            "id": 2,
+            "name": "pm25",
+            "units": "µg/m³",
+            "displayName": "PM2.5"
+          }
+        },
+        {
+          "id": 16319117,
+          "name": "so2 ppb",
+          "parameter": {
+            "id": 101,
+            "name": "so2",
+            "units": "ppb",
+            "displayName": "SO₂"
+          }
+        },
+        {
+          "id": 1352698,
+          "name": "so2 ppm",
+          "parameter": {
+            "id": 9,
+            "name": "so2",
+            "units": "ppm",
+            "displayName": "SO₂"
+          }
+        }
+      ],
+      "coordinates": {
+        "latitude": 20.388888888889,
+        "longitude": -99.972147222222
+      },
+      "licenses": [
+        {
+          "id": 36,
+          "name": "Mexico SINAICA Terms and Conditions",
+          "attribution": {
+            "name": "Unknown Governmental Organization",
+            "url": null
+          },
+          "dateFrom": "2016-03-07",
+          "dateTo": null
+        }
+      ],
+      "bounds": [
+        -99.972147222222,
+        20.388888888889,
+        -99.972147222222,
+        20.388888888889
+      ],
+      "distance": null,
+      "datetimeFirst": {
+        "utc": "2021-09-07T21:00:00Z",
+        "local": "2021-09-07T16:00:00-05:00"
+      },
+      "datetimeLast": {
+        "utc": "2026-09-25T18:00:00Z",
+        "local": "2026-09-25T12:00:00-06:00"
+      }
+    },
+    {
+      "id": 235234,
+      "name": "Félix Osores",
+      "locality": "Querétaro",
+      "timezone": "America/Mexico_City",
+      "country": {
+        "id": 157,
+        "code": "MX",
+        "name": "Mexico"
+      },
+      "owner": {
+        "id": 4,
+        "name": "Unknown Governmental Organization"
+      },
+      "provider": {
+        "id": 223,
+        "name": "Sinaica Mexico"
+      },
+      "isMobile": false,
+      "isMonitor": true,
+      "instruments": [
+        {
+          "id": 2,
+          "name": "Government Monitor"
+        },
+        {
+          "id": 2,
+          "name": "Government Monitor"
+        }
+      ],
+      "sensors": [
+        {
+          "id": 16318818,
+          "name": "co ppb",
+          "parameter": {
+            "id": 102,
+            "name": "co",
+            "units": "ppb",
+            "displayName": "CO"
+          }
+        },
+        {
+          "id": 1352669,
+          "name": "co ppm",
+          "parameter": {
+            "id": 8,
+            "name": "co",
+            "units": "ppm",
+            "displayName": "CO"
+          }
+        },
+        {
+          "id": 4275719,
+          "name": "no ppm",
+          "parameter": {
+            "id": 35,
+            "name": "no",
+            "units": "ppm",
+            "displayName": "NO"
+          }
+        },
+        {
+          "id": 16318819,
+          "name": "no ppb",
+          "parameter": {
+            "id": 24,
+            "name": "no",
+            "units": "ppb",
+            "displayName": "NO"
+          }
+        },
+        {
+          "id": 16318820,
+          "name": "no2 ppb",
+          "parameter": {
+            "id": 15,
+            "name": "no2",
+            "units": "ppb",
+            "displayName": "NO₂"
+          }
+        },
+        {
+          "id": 1352703,
+          "name": "no2 ppm",
+          "parameter": {
+            "id": 7,
+            "name": "no2",
+            "units": "ppm",
+            "displayName": "NO₂"
+          }
+        },
+        {
+          "id": 16318821,
+          "name": "nox ppb",
+          "parameter": {
+            "id": 23,
+            "name": "nox",
+            "units": "ppb",
+            "displayName": "NOX"
+          }
+        },
+        {
+          "id": 4276026,
+          "name": "nox ppm",
+          "parameter": {
+            "id": 19840,
+            "name": "nox",
+            "units": "ppm",
+            "displayName": "NOx"
+          }
+        },
+        {
+          "id": 1352668,
+          "name": "o3 ppm",
+          "parameter": {
+            "id": 10,
+            "name": "o3",
+            "units": "ppm",
+            "displayName": "O₃"
+          }
+        },
+        {
+          "id": 16318822,
+          "name": "o3 µg/m³",
+          "parameter": {
+            "id": 3,
+            "name": "o3",
+            "units": "µg/m³",
+            "displayName": "O₃ mass"
+          }
+        },
+        {
+          "id": 1352681,
+          "name": "pm25 µg/m³",
+          "parameter": {
+            "id": 2,
+            "name": "pm25",
+            "units": "µg/m³",
+            "displayName": "PM2.5"
+          }
+        },
+        {
+          "id": 16318823,
+          "name": "pm25 µg/m³",
+          "parameter": {
+            "id": 2,
+            "name": "pm25",
+            "units": "µg/m³",
+            "displayName": "PM2.5"
+          }
+        },
+        {
+          "id": 16318824,
+          "name": "so2 ppb",
+          "parameter": {
+            "id": 101,
+            "name": "so2",
+            "units": "ppb",
+            "displayName": "SO₂"
+          }
+        },
+        {
+          "id": 1352713,
+          "name": "so2 ppm",
+          "parameter": {
+            "id": 9,
+            "name": "so2",
+            "units": "ppm",
+            "displayName": "SO₂"
+          }
+        }
+      ],
+      "coordinates": {
+        "latitude": 20.636819444444,
+        "longitude": -100.46388333333
+      },
+      "licenses": [
+        {
+          "id": 36,
+          "name": "Mexico SINAICA Terms and Conditions",
+          "attribution": {
+            "name": "Unknown Governmental Organization",
+            "url": null
+          },
+          "dateFrom": "2016-03-07",
+          "dateTo": null
+        }
+      ],
+      "bounds": [
+        -100.46388333333,
+        20.636819444444,
+        -100.46388333333,
+        20.636819444444
+      ],
+      "distance": null,
+      "datetimeFirst": {
+        "utc": "2021-09-07T21:00:00Z",
+        "local": "2021-09-07T16:00:00-05:00"
+      },
+      "datetimeLast": {
+        "utc": "2026-10-17T18:00:00Z",
+        "local": "2026-10-17T12:00:00-06:00"
+      }
+    },
+    {
+      "id": 480392,
+      "name": "Epigmenio González",
+      "locality": "Querétaro",
+      "timezone": "America/Mexico_City",
+      "country": {
+        "id": 157,
+        "code": "MX",
+        "name": "Mexico"
+      },
+      "owner": {
+        "id": 4,
+        "name": "Unknown Governmental Organization"
+      },
+      "provider": {
+        "id": 223,
+        "name": "Sinaica Mexico"
+      },
+      "isMobile": false,
+      "isMonitor": true,
+      "instruments": [
+        {
+          "id": 2,
+          "name": "Government Monitor"
+        },
+        {
+          "id": 2,
+          "name": "Government Monitor"
+        }
+      ],
+      "sensors": [
+        {
+          "id": 16318772,
+          "name": "co ppb",
+          "parameter": {
+            "id": 102,
+            "name": "co",
+            "units": "ppb",
+            "displayName": "CO"
+          }
+        },
+        {
+          "id": 2694045,
+          "name": "co ppm",
+          "parameter": {
+            "id": 8,
+            "name": "co",
+            "units": "ppm",
+            "displayName": "CO"
+          }
+        },
+        {
+          "id": 16318773,
+          "name": "no2 ppb",
+          "parameter": {
+            "id": 15,
+            "name": "no2",
+            "units": "ppb",
+            "displayName": "NO₂"
+          }
+        },
+        {
+          "id": 2694065,
+          "name": "no2 ppm",
+          "parameter": {
+            "id": 7,
+            "name": "no2",
+            "units": "ppm",
+            "displayName": "NO₂"
+          }
+        },
+        {
+          "id": 16318774,
+          "name": "o3 µg/m³",
+          "parameter": {
+            "id": 3,
+            "name": "o3",
+            "units": "µg/m³",
+            "displayName": "O₃ mass"
+          }
+        },
+        {
+          "id": 2694042,
+          "name": "o3 ppm",
+          "parameter": {
+            "id": 10,
+            "name": "o3",
+            "units": "ppm",
+            "displayName": "O₃"
+          }
+        },
+        {
+          "id": 16318775,
+          "name": "pm25 µg/m³",
+          "parameter": {
+            "id": 2,
+            "name": "pm25",
+            "units": "µg/m³",
+            "displayName": "PM2.5"
+          }
+        },
+        {
+          "id": 2694071,
+          "name": "pm25 µg/m³",
+          "parameter": {
+            "id": 2,
+            "name": "pm25",
+            "units": "µg/m³",
+            "displayName": "PM2.5"
+          }
+        },
+        {
+          "id": 2694050,
+          "name": "so2 ppm",
+          "parameter": {
+            "id": 9,
+            "name": "so2",
+            "units": "ppm",
+            "displayName": "SO₂"
+          }
+        },
+        {
+          "id": 16318776,
+          "name": "so2 ppb",
+          "parameter": {
+            "id": 101,
+            "name": "so2",
+            "units": "ppb",
+            "displayName": "SO₂"
+          }
+        }
+      ],
+      "coordinates": {
+        "latitude": 20.627538888889,
+        "longitude": -100.40862222222
+      },
+      "licenses": [
+        {
+          "id": 36,
+          "name": "Mexico SINAICA Terms and Conditions",
+          "attribution": {
+            "name": "Unknown Governmental Organization",
+            "url": null
+          },
+          "dateFrom": "2016-03-07",
+          "dateTo": null
+        }
+      ],
+      "bounds": [
+        -100.40862222222,
+        20.627538888889,
+        -100.40862222222,
+        20.627538888889
+      ],
+      "distance": null,
+      "datetimeFirst": {
+        "utc": "2023-01-09T20:00:00Z",
+        "local": "2023-01-09T14:00:00-06:00"
+      },
+      "datetimeLast": {
+        "utc": "2026-10-17T18:00:00Z",
+        "local": "2026-10-17T12:00:00-06:00"
+      }
+    },
+    {
+      "id": 1189215,
+      "name": "Universidad Tecnológica de Tula Tepeji",
+      "locality": "Tula de Allende",
+      "timezone": "America/Mexico_City",
+      "country": {
+        "id": 157,
+        "code": "MX",
+        "name": "Mexico"
+      },
+      "owner": {
+        "id": 4,
+        "name": "Unknown Governmental Organization"
+      },
+      "provider": {
+        "id": 223,
+        "name": "Sinaica Mexico"
+      },
+      "isMobile": false,
+      "isMonitor": true,
+      "instruments": [
+        {
+          "id": 2,
+          "name": "Government Monitor"
+        }
+      ],
+      "sensors": [
+        {
+          "id": 6480801,
+          "name": "co ppm",
+          "parameter": {
+            "id": 8,
+            "name": "co",
+            "units": "ppm",
+            "displayName": "CO"
+          }
+        },
+        {
+          "id": 6480798,
+          "name": "no ppm",
+          "parameter": {
+            "id": 35,
+            "name": "no",
+            "units": "ppm",
+            "displayName": "NO"
+          }
+        },
+        {
+          "id": 6480797,
+          "name": "no2 ppm",
+          "parameter": {
+            "id": 7,
+            "name": "no2",
+            "units": "ppm",
+            "displayName": "NO₂"
+          }
+        },
+        {
+          "id": 6480802,
+          "name": "nox ppm",
+          "parameter": {
+            "id": 19840,
+            "name": "nox",
+            "units": "ppm",
+            "displayName": "NOx"
+          }
+        },
+        {
+          "id": 6480799,
+          "name": "o3 ppm",
+          "parameter": {
+            "id": 10,
+            "name": "o3",
+            "units": "ppm",
+            "displayName": "O₃"
+          }
+        },
+        {
+          "id": 6758683,
+          "name": "pm10 µg/m³",
+          "parameter": {
+            "id": 1,
+            "name": "pm10",
+            "units": "µg/m³",
+            "displayName": "PM10"
+          }
+        },
+        {
+          "id": 6758684,
+          "name": "pm25 µg/m³",
+          "parameter": {
+            "id": 2,
+            "name": "pm25",
+            "units": "µg/m³",
+            "displayName": "PM2.5"
+          }
+        },
+        {
+          "id": 6480800,
+          "name": "so2 ppm",
+          "parameter": {
+            "id": 9,
+            "name": "so2",
+            "units": "ppm",
+            "displayName": "SO₂"
+          }
+        }
+      ],
+      "coordinates": {
+        "latitude": 20.000849833333,
+        "longitude": -99.34376
+      },
+      "licenses": [
+        {
+          "id": 36,
+          "name": "Mexico SINAICA Terms and Conditions",
+          "attribution": {
+            "name": "Unknown Governmental Organization",
+            "url": null
+          },
+          "dateFrom": "2016-03-07",
+          "dateTo": null
+        }
+      ],
+      "bounds": [
+        -99.34376,
+        20.000849833333,
+        -99.34376,
+        20.000849833333
+      ],
+      "distance": null,
+      "datetimeFirst": {
+        "utc": "2023-07-09T02:00:00Z",
+        "local": "2023-07-08T20:00:00-06:00"
+      },
+      "datetimeLast": {
+        "utc": "2024-10-31T20:00:00Z",
+        "local": "2024-10-31T14:00:00-06:00"
+      }
+    },
+    {
+      "id": 1890671,
+      "name": "Primaria Amado Nervo",
+      "locality": "Mixquiahuala de Juárez",
+      "timezone": "America/Mexico_City",
+      "country": {
+        "id": 157,
+        "code": "MX",
+        "name": "Mexico"
+      },
+      "owner": {
+        "id": 4,
+        "name": "Unknown Governmental Organization"
+      },
+      "provider": {
+        "id": 223,
+        "name": "Sinaica Mexico"
+      },
+      "isMobile": false,
+      "isMonitor": true,
+      "instruments": [
+        {
+          "id": 2,
+          "name": "Government Monitor"
+        }
+      ],
+      "sensors": [
+        {
+          "id": 7461996,
+          "name": "o3 ppm",
+          "parameter": {
+            "id": 10,
+            "name": "o3",
+            "units": "ppm",
+            "displayName": "O₃"
+          }
+        },
+        {
+          "id": 7461994,
+          "name": "pm10 µg/m³",
+          "parameter": {
+            "id": 1,
+            "name": "pm10",
+            "units": "µg/m³",
+            "displayName": "PM10"
+          }
+        },
+        {
+          "id": 7461995,
+          "name": "pm25 µg/m³",
+          "parameter": {
+            "id": 2,
+            "name": "pm25",
+            "units": "µg/m³",
+            "displayName": "PM2.5"
+          }
+        },
+        {
+          "id": 7480429,
+          "name": "so2 ppm",
+          "parameter": {
+            "id": 9,
+            "name": "so2",
+            "units": "ppm",
+            "displayName": "SO₂"
+          }
+        }
+      ],
+      "coordinates": {
+        "latitude": 20.230746944444,
+        "longitude": -99.214248888889
+      },
+      "licenses": [
+        {
+          "id": 36,
+          "name": "Mexico SINAICA Terms and Conditions",
+          "attribution": {
+            "name": "Unknown Governmental Organization",
+            "url": null
+          },
+          "dateFrom": "2016-03-07",
+          "dateTo": null
+        }
+      ],
+      "bounds": [
+        -99.214248888889,
+        20.230746944444,
+        -99.214248888889,
+        20.230746944444
+      ],
+      "distance": null,
+      "datetimeFirst": {
+        "utc": "2023-11-26T18:00:00Z",
+        "local": "2023-11-26T12:00:00-06:00"
+      },
+      "datetimeLast": {
+        "utc": "2026-10-17T18:00:00Z",
+        "local": "2026-10-17T12:00:00-06:00"
+      }
+    },
+    {
+      "id": 3317068,
+      "name": "Universidad Tecnológica de Tula Tepeji",
+      "locality": "Tula de Allende",
+      "timezone": "America/Mexico_City",
+      "country": {
+        "id": 157,
+        "code": "MX",
+        "name": "Mexico"
+      },
+      "owner": {
+        "id": 4,
+        "name": "Unknown Governmental Organization"
+      },
+      "provider": {
+        "id": 223,
+        "name": "Sinaica Mexico"
+      },
+      "isMobile": false,
+      "isMonitor": true,
+      "instruments": [
+        {
+          "id": 2,
+          "name": "Government Monitor"
+        }
+      ],
+      "sensors": [
+        {
+          "id": 11659908,
+          "name": "co ppm",
+          "parameter": {
+            "id": 8,
+            "name": "co",
+            "units": "ppm",
+            "displayName": "CO"
+          }
+        },
+        {
+          "id": 11659910,
+          "name": "no ppm",
+          "parameter": {
+            "id": 35,
+            "name": "no",
+            "units": "ppm",
+            "displayName": "NO"
+          }
+        },
+        {
+          "id": 11659909,
+          "name": "no2 ppm",
+          "parameter": {
+            "id": 7,
+            "name": "no2",
+            "units": "ppm",
+            "displayName": "NO₂"
+          }
+        },
+        {
+          "id": 11659912,
+          "name": "nox ppm",
+          "parameter": {
+            "id": 19840,
+            "name": "nox",
+            "units": "ppm",
+            "displayName": "NOx"
+          }
+        },
+        {
+          "id": 11659913,
+          "name": "o3 ppm",
+          "parameter": {
+            "id": 10,
+            "name": "o3",
+            "units": "ppm",
+            "displayName": "O₃"
+          }
+        },
+        {
+          "id": 11659914,
+          "name": "pm10 µg/m³",
+          "parameter": {
+            "id": 1,
+            "name": "pm10",
+            "units": "µg/m³",
+            "displayName": "PM10"
+          }
+        },
+        {
+          "id": 12661036,
+          "name": "pm25 µg/m³",
+          "parameter": {
+            "id": 2,
+            "name": "pm25",
+            "units": "µg/m³",
+            "displayName": "PM2.5"
+          }
+        },
+        {
+          "id": 11659911,
+          "name": "so2 ppm",
+          "parameter": {
+            "id": 9,
+            "name": "so2",
+            "units": "ppm",
+            "displayName": "SO₂"
+          }
+        }
+      ],
+      "coordinates": {
+        "latitude": 20.008503055556,
+        "longitude": -99.343765833333
+      },
+      "licenses": [
+        {
+          "id": 36,
+          "name": "Mexico SINAICA Terms and Conditions",
+          "attribution": {
+            "name": "Unknown Governmental Organization",
+            "url": null
+          },
+          "dateFrom": "2016-03-07",
+          "dateTo": null
+        }
+      ],
+      "bounds": [
+        -99.343765833333,
+        20.008503055556,
+        -99.343765833333,
+        20.008503055556
+      ],
+      "distance": null,
+      "datetimeFirst": {
+        "utc": "2024-12-13T22:00:00Z",
+        "local": "2024-12-13T16:00:00-06:00"
+      },
+      "datetimeLast": {
+        "utc": "2026-10-17T18:00:00Z",
+        "local": "2026-10-17T12:00:00-06:00"
+      }
+    },
+    {
+      "id": 6247128,
+      "name": "Primaria Venustiano Carranza",
+      "locality": "Tula de Allende",
+      "timezone": "America/Mexico_City",
+      "country": {
+        "id": 157,
+        "code": "MX",
+        "name": "Mexico"
+      },
+      "owner": {
+        "id": 4,
+        "name": "Unknown Governmental Organization"
+      },
+      "provider": {
+        "id": 223,
+        "name": "Sinaica Mexico"
+      },
+      "isMobile": false,
+      "isMonitor": true,
+      "instruments": [
+        {
+          "id": 2,
+          "name": "Government Monitor"
+        }
+      ],
+      "sensors": [
+        {
+          "id": 15498411,
+          "name": "no ppm",
+          "parameter": {
+            "id": 35,
+            "name": "no",
+            "units": "ppm",
+            "displayName": "NO"
+          }
+        },
+        {
+          "id": 15498409,
+          "name": "no2 ppm",
+          "parameter": {
+            "id": 7,
+            "name": "no2",
+            "units": "ppm",
+            "displayName": "NO₂"
+          }
+        },
+        {
+          "id": 15498410,
+          "name": "nox ppm",
+          "parameter": {
+            "id": 19840,
+            "name": "nox",
+            "units": "ppm",
+            "displayName": "NOx"
+          }
+        },
+        {
+          "id": 15498407,
+          "name": "o3 ppm",
+          "parameter": {
+            "id": 10,
+            "name": "o3",
+            "units": "ppm",
+            "displayName": "O₃"
+          }
+        },
+        {
+          "id": 15498412,
+          "name": "pm10 µg/m³",
+          "parameter": {
+            "id": 1,
+            "name": "pm10",
+            "units": "µg/m³",
+            "displayName": "PM10"
+          }
+        },
+        {
+          "id": 15498413,
+          "name": "pm25 µg/m³",
+          "parameter": {
+            "id": 2,
+            "name": "pm25",
+            "units": "µg/m³",
+            "displayName": "PM2.5"
+          }
+        },
+        {
+          "id": 15498408,
+          "name": "so2 ppm",
+          "parameter": {
+            "id": 9,
+            "name": "so2",
+            "units": "ppm",
+            "displayName": "SO₂"
+          }
+        }
+      ],
+      "coordinates": {
+        "latitude": 20.054955675,
+        "longitude": -99.340165277778
+      },
+      "licenses": [
+        {
+          "id": 36,
+          "name": "Mexico SINAICA Terms and Conditions",
+          "attribution": {
+            "name": "Unknown Governmental Organization",
+            "url": null
+          },
+          "dateFrom": "2016-03-07",
+          "dateTo": null
+        }
+      ],
+      "bounds": [
+        -99.340165277778,
+        20.054955675,
+        -99.340165277778,
+        20.054955675
+      ],
+      "distance": null,
+      "datetimeFirst": {
+        "utc": "2026-02-18T22:00:00Z",
+        "local": "2026-02-18T16:00:00-06:00"
+      },
+      "datetimeLast": {
+        "utc": "2026-10-17T18:00:00Z",
+        "local": "2026-10-17T12:00:00-06:00"
+      }
+    },
+    {
+      "id": 6498868,
+      "name": "San Juan del Río",
+      "locality": "San Juan del Río",
+      "timezone": "America/Mexico_City",
+      "country": {
+        "id": 157,
+        "code": "MX",
+        "name": "Mexico"
+      },
+      "owner": {
+        "id": 4,
+        "name": "Unknown Governmental Organization"
+      },
+      "provider": {
+        "id": 223,
+        "name": "Sinaica Mexico"
+      },
+      "isMobile": false,
+      "isMonitor": true,
+      "instruments": [
+        {
+          "id": 2,
+          "name": "Government Monitor"
+        }
+      ],
+      "sensors": [
+        {
+          "id": 17320551,
+          "name": "co ppm",
+          "parameter": {
+            "id": 8,
+            "name": "co",
+            "units": "ppm",
+            "displayName": "CO"
+          }
+        },
+        {
+          "id": 17320549,
+          "name": "no ppm",
+          "parameter": {
+            "id": 35,
+            "name": "no",
+            "units": "ppm",
+            "displayName": "NO"
+          }
+        },
+        {
+          "id": 17320550,
+          "name": "no2 ppm",
+          "parameter": {
+            "id": 7,
+            "name": "no2",
+            "units": "ppm",
+            "displayName": "NO₂"
+          }
+        },
+        {
+          "id": 17320545,
+          "name": "nox ppm",
+          "parameter": {
+            "id": 19840,
+            "name": "nox",
+            "units": "ppm",
+            "displayName": "NOx"
+          }
+        },
+        {
+          "id": 17320547,
+          "name": "o3 ppm",
+          "parameter": {
+            "id": 10,
+            "name": "o3",
+            "units": "ppm",
+            "displayName": "O₃"
+          }
+        },
+        {
+          "id": 17320548,
+          "name": "pm25 µg/m³",
+          "parameter": {
+            "id": 2,
+            "name": "pm25",
+            "units": "µg/m³",
+            "displayName": "PM2.5"
+          }
+        },
+        {
+          "id": 17320546,
+          "name": "so2 ppm",
+          "parameter": {
+            "id": 9,
+            "name": "so2",
+            "units": "ppm",
+            "displayName": "SO₂"
+          }
+        }
+      ],
+      "coordinates": {
+        "latitude": 20.389961111111,
+        "longitude": -99.991727777778
+      },
+      "licenses": [
+        {
+          "id": 36,
+          "name": "Mexico SINAICA Terms and Conditions",
+          "attribution": {
+            "name": "Unknown Governmental Organization",
+            "url": null
+          },
+          "dateFrom": "2016-03-07",
+          "dateTo": null
+        }
+      ],
+      "bounds": [
+        -99.991727777778,
+        20.389961111111,
+        -99.991727777778,
+        20.389961111111
+      ],
+      "distance": null,
+      "datetimeFirst": {
+        "utc": "2026-08-19T00:00:00Z",
+        "local": "2026-08-18T18:00:00-06:00"
+      },
+      "datetimeLast": {
+        "utc": "2026-10-17T18:00:00Z",
+        "local": "2026-10-17T12:00:00-06:00"
+      }
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+{% if aeris_snapshot_created %}
+<aside role="note" aria-label="Datos de esta beta" style="padding:12px 18px;background:#e0f5f2;color:#102d40;border-bottom:2px solid #087f8c;font:inherit;overflow-wrap:anywhere">
+  <strong>Beta con una copia de datos.</strong> Copia preparada el
+  <time datetime="{{ aeris_snapshot_created }}">{{ aeris_snapshot_created }} (UTC)</time>.
+  No se actualiza en vivo. La fecha de cada medición puede ser anterior;
+  los registros históricos no describen el aire de hoy.
+</aside>
+{% endif %}
