@@ -1,789 +1,323 @@
-from flask import Flask, render_template_string, jsonify, request
-import pandas as pd
-import numpy as np
+"""AERIS — Observatorio de PM2.5. Flask + SQLite (OpenAQ v3).
+Instalar: pip install flask
+Ejecutar desde la raíz de AERIS: python app.py
+Datos: data/aeris_air_quality.db; logo: logo.png o static/logo.png.
+"""
+from __future__ import annotations
+import csv
+import io
 import os
-import json
-from functools import lru_cache
+import sqlite3
+from collections import defaultdict
+from datetime import datetime, timezone, timedelta
+from pathlib import Path
+from contextlib import closing
+from data_ingestion.catalog import read_catalog, SELECTED
+from data_ingestion.visibility import connect_readonly
+from flask import Flask, Response, jsonify, render_template_string, request, send_file
 
-try:
-    from sklearn.ensemble import RandomForestClassifier
-    from sklearn.model_selection import train_test_split
-    from sklearn.metrics import accuracy_score
-    SKLEARN_AVAILABLE = True
-except Exception:
-    SKLEARN_AVAILABLE = False
-
+ROOT = Path(__file__).resolve().parent
 app = Flask(__name__)
+from aeris_web.config import configure
+DB = configure(app, ROOT)
 
-DATA_PATH = os.path.join("data", "AERIS_dataset_queretaro.csv")
-FEATURES = ["pm25", "pm10", "no2", "o3", "temperatura", "humedad", "indice_crecimiento_industrial"]
-TARGET = "riesgo_respiratorio"
+STATIONS = SELECTED
 
+def db_connect():
+    if not DB.is_file():
+        raise FileNotFoundError('No se encontró la base de datos configurada.')
+    con = connect_readonly(DB)
+    con.row_factory = sqlite3.Row
+    return con
 
-def normalizar_columnas(df: pd.DataFrame) -> pd.DataFrame:
-    df = df.copy()
-    df.columns = (
-        df.columns.astype(str)
-        .str.strip()
-        .str.lower()
-        .str.replace(".", "", regex=False)
-        .str.replace(" ", "_", regex=False)
-    )
-    return df
+def has_quality(con):
+    return bool(con.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='calidad_mediciones'").fetchone())
 
+def read_measurements():
+    with closing(db_connect()) as con:
+        catalog = read_catalog(con)
+        quality = has_quality(con)
+        join = '''LEFT JOIN calidad_mediciones q ON q.fuente=m.fuente AND q.sensor_id=m.sensor_id
+            AND q.fecha_utc=m.fecha_utc AND q.contaminante=m.contaminante''' if quality else ''
+        cols = '''COALESCE(q.es_cero,0) AS es_cero, COALESCE(q.es_extremo,0) AS es_extremo,
+            COALESCE(q.salto_abrupto,0) AS salto_abrupto, COALESCE(q.requiere_revision,0) AS requiere_revision,
+            (q.sensor_id IS NOT NULL) AS quality_evaluated''' if quality else '''0 AS es_cero, 0 AS es_extremo, 0 AS salto_abrupto, 0 AS requiere_revision, 0 AS quality_evaluated'''
+        rows = con.execute(f'''SELECT m.fuente,m.sensor_id,m.fecha_utc,m.valor,m.unidad,{cols}
+            FROM mediciones m {join} WHERE LOWER(m.contaminante)='pm25' ORDER BY m.fecha_utc''').fetchall()
+    result = []
+    for r in rows:
+        x = dict(r)
+        x['sensor_id'] = int(x['sensor_id'])
+        x['name'], x['municipality'] = STATIONS.get(x['sensor_id'], (f"Sensor {x['sensor_id']}", 'No identificado'))
+        metadata = catalog.get(x['sensor_id'], {}) if x['fuente'] == 'OpenAQ' else {}
+        x['name'] = metadata.get('name', x['name'])
+        x['municipality'] = metadata.get('municipality', x['municipality'])
+        x['lat'], x['lon'] = metadata.get('lat'), metadata.get('lon')
+        x['valor'] = float(x['valor'])
+        x['year'] = str(x['fecha_utc'])[:4]
+        result.append(x)
+    return result, quality
 
-@lru_cache(maxsize=4)
-def cargar_datos_cache(path: str, modified_time: float) -> pd.DataFrame:
-    df = pd.read_csv(path)
-    df = normalizar_columnas(df)
+def iso_time(s):
+    return datetime.fromisoformat(str(s).replace('Z','+00:00')).astimezone(timezone.utc)
 
-    if "fecha" in df.columns:
-        df["fecha"] = pd.to_datetime(df["fecha"], errors="coerce")
+def serialize(x):
+    result = {k: x[k] for k in ('fuente','sensor_id','name','municipality','fecha_utc','valor','unidad','es_cero','es_extremo','salto_abrupto','requiere_revision','quality_evaluated')}
+    if not x['quality_evaluated']:
+        for key in ('es_cero','es_extremo','salto_abrupto','requiere_revision'):
+            result[key] = None
+    return result
 
-    for col in FEATURES:
-        if col in df.columns:
-            df[col] = pd.to_numeric(df[col], errors="coerce")
+def filtered(rows, station='all', period='recent', quality='all'):
+    if station != 'all':
+        rows = [r for r in rows if str(r['sensor_id']) == station]
+    if period == 'recent':
+        rows = [r for r in rows if r['year'] == str(datetime.now(timezone.utc).year)]
+    elif period == 'historic':
+        rows = [r for r in rows if r['year'] != str(datetime.now(timezone.utc).year)]
+    elif period in ('7','14','30'):
+        now = datetime.now(timezone.utc)
+        cutoff = now - timedelta(days=int(period))
+        rows = [r for r in rows if cutoff <= iso_time(r['fecha_utc']) <= now]
+    if quality == 'exclude':
+        rows = [r for r in rows if r['quality_evaluated'] and not r['requiere_revision']]
+    elif quality == 'review':
+        rows = [r for r in rows if r['requiere_revision']]
+    elif quality == 'pending':
+        rows = [r for r in rows if not r['quality_evaluated']]
+    return rows
 
-    return df
+def stats(rows):
+    if not rows:
+        return {'count':0,'mean':None,'minimum':None,'maximum':None,'latest':None,'latest_at':None,'review':0,'zeros':0,'extremes':0,'stations':0,'quality_pending':0}
+    values = [r['valor'] for r in rows]
+    last = max(rows, key=lambda r:r['fecha_utc'])
+    return {'count':len(rows),'mean':round(sum(values)/len(values),2),
+        'minimum':round(min(values),2),'maximum':round(max(values),2),
+        'latest':round(last['valor'],2),'latest_at':last['fecha_utc'],
+        'review':sum(r['requiere_revision'] for r in rows),
+        'zeros':sum(r['es_cero'] for r in rows),
+        'extremes':sum(r['es_extremo'] for r in rows),
+        'stations':len(set(r['sensor_id'] for r in rows)),
+        'quality_pending':sum(not r['quality_evaluated'] for r in rows)}
 
+def daily(rows, min_hours=18):
+    buckets = defaultdict(list)
+    for r in rows:
+        buckets[(r['sensor_id'], str(r['fecha_utc'])[:10])].append(r['valor'])
+    result = []
+    for (sensor, day), vals in sorted(buckets.items(), key=lambda x:(x[0][1],x[0][0])):
+        result.append({'sensor_id':sensor,'day':day,'mean':round(sum(vals)/len(vals),2),
+                       'count':len(vals),'sufficient':len(vals)>=min_hours})
+    return result
 
-def cargar_datos() -> pd.DataFrame:
-    if not os.path.exists(DATA_PATH):
-        raise FileNotFoundError(f"No se encontró el dataset en: {DATA_PATH}")
-    modified_time = os.path.getmtime(DATA_PATH)
-    return cargar_datos_cache(DATA_PATH, modified_time)
+def api_error(e):
+    if isinstance(e, FileNotFoundError):
+        return jsonify({'error':str(e)}), 503
+    if isinstance(e, sqlite3.Error):
+        return jsonify({'error':'No se pudo leer SQLite. Verifica las tablas mediciones y calidad_mediciones.'}), 503
+    raise e
 
+@app.route('/logo.png')
+def logo():
+    for p in (ROOT/'logo.png', ROOT/'static'/'logo.png', ROOT/'assets'/'logo.png'):
+        if p.is_file():
+            return send_file(p, mimetype='image/png')
+    return Response(status=404)
 
-def formato_numero(valor, decimales=2):
+@app.route('/api/overview')
+def overview():
     try:
-        if pd.isna(valor):
-            return "N/D"
-        return f"{float(valor):,.{decimales}f}"
-    except Exception:
-        return "N/D"
+        rows, qc = read_measurements()
+        recent = [r for r in rows if r['year']==str(datetime.now(timezone.utc).year)]
+        years = sorted(set(r['year'] for r in rows))
+        stations = []
+        for sid in sorted(set(r['sensor_id'] for r in rows), key=lambda i:STATIONS.get(i,(str(i),))[0]):
+            subset = [r for r in rows if r['sensor_id']==sid]
+            latest = max(subset, key=lambda r:r['fecha_utc'])
+            name, municipality = STATIONS.get(sid,(f'Sensor {sid}','No identificado'))
+            name, municipality = latest['name'], latest['municipality']
+            stations.append({'id':sid,'name':name,'municipality':municipality,'count':len(subset),
+                'years':sorted(set(r['year'] for r in subset)), 'latest':serialize(latest),
+                'review':sum(r['requiere_revision'] for r in subset),
+                'quality_pending':sum(not r['quality_evaluated'] for r in subset),
+                'lat':latest['lat'], 'lon':latest['lon']})
+        return jsonify({'total':stats(rows),'recent':stats(recent),'years':years,
+            'quality_available':qc,'stations':stations,'source':'OpenAQ API v3 (datos horarios por sensor)',
+            'disclaimer':'OpenAQ es la vía de consulta. El operador y la procedencia primaria de cada sensor requieren verificación documental. No son datos en vivo.'})
+    except (FileNotFoundError,sqlite3.Error) as e: return api_error(e)
 
-
-def clasificar_riesgo_texto(valor: str) -> str:
-    texto = str(valor).strip().lower()
-    if "alto" in texto or "high" in texto:
-        return "Alto"
-    if "medio" in texto or "moderado" in texto or "medium" in texto:
-        return "Medio"
-    if "bajo" in texto or "low" in texto:
-        return "Bajo"
-    if texto in ["1", "riesgo"]:
-        return "Alto"
-    if texto in ["0", "sin riesgo"]:
-        return "Bajo"
-    return str(valor).strip().title() if str(valor).strip() else "No disponible"
-
-
-def construir_resumen(df: pd.DataFrame):
-    municipios = sorted(df["municipio"].dropna().astype(str).unique()) if "municipio" in df.columns else []
-    fecha_min = df["fecha"].min().date().isoformat() if "fecha" in df.columns and df["fecha"].notna().any() else "N/D"
-    fecha_max = df["fecha"].max().date().isoformat() if "fecha" in df.columns and df["fecha"].notna().any() else "N/D"
-
-    pm25_prom = df["pm25"].mean() if "pm25" in df.columns else np.nan
-    pm10_prom = df["pm10"].mean() if "pm10" in df.columns else np.nan
-    no2_prom = df["no2"].mean() if "no2" in df.columns else np.nan
-    o3_prom = df["o3"].mean() if "o3" in df.columns else np.nan
-
-    municipio_critico = "N/D"
-    if "municipio" in df.columns and "pm25" in df.columns:
-        ranking = df.groupby("municipio", dropna=True)["pm25"].mean().sort_values(ascending=False)
-        if not ranking.empty:
-            municipio_critico = str(ranking.index[0])
-
-    tendencia_pm25 = "N/D"
-    if "fecha" in df.columns and "pm25" in df.columns:
-        serie = df.dropna(subset=["fecha"]).groupby("fecha")["pm25"].mean().sort_index()
-        if len(serie) >= 2:
-            delta = serie.iloc[-1] - serie.iloc[0]
-            tendencia_pm25 = "creciente" if delta > 0 else "decreciente"
-
-    return {
-        "registros": f"{len(df):,}",
-        "variables": f"{len(df.columns):,}",
-        "municipios_total": len(municipios),
-        "municipios_lista": ", ".join(municipios) if municipios else "No disponible",
-        "fecha_min": fecha_min,
-        "fecha_max": fecha_max,
-        "anio_min": fecha_min[:4] if fecha_min != "N/D" else "N/D",
-        "anio_max": fecha_max[:4] if fecha_max != "N/D" else "N/D",
-        "pm25_prom": formato_numero(pm25_prom),
-        "pm10_prom": formato_numero(pm10_prom),
-        "no2_prom": formato_numero(no2_prom),
-        "o3_prom": formato_numero(o3_prom),
-        "municipio_critico": municipio_critico,
-        "tendencia_pm25": tendencia_pm25,
-    }
-
-
-def construir_graficas(df: pd.DataFrame):
-    graficas = {}
-
-    if "fecha" in df.columns:
-        fechas_df = df.dropna(subset=["fecha"]).copy()
-        if not fechas_df.empty:
-            fechas_df["periodo"] = fechas_df["fecha"].dt.strftime("%Y-%m")
-            serie = fechas_df.groupby("periodo")[[c for c in ["pm25", "pm10", "no2", "o3"] if c in fechas_df.columns]].mean().tail(72)
-            graficas["labels_tiempo"] = serie.index.tolist()
-            graficas["pm25_tiempo"] = [round(x, 2) if pd.notna(x) else None for x in serie.get("pm25", pd.Series(dtype=float)).tolist()]
-            graficas["pm10_tiempo"] = [round(x, 2) if pd.notna(x) else None for x in serie.get("pm10", pd.Series(dtype=float)).tolist()]
-            graficas["no2_tiempo"] = [round(x, 2) if pd.notna(x) else None for x in serie.get("no2", pd.Series(dtype=float)).tolist()]
-            graficas["o3_tiempo"] = [round(x, 2) if pd.notna(x) else None for x in serie.get("o3", pd.Series(dtype=float)).tolist()]
-
-    if "municipio" in df.columns:
-        cols = [c for c in ["pm25", "pm10", "no2", "o3"] if c in df.columns]
-        if cols:
-            muni = df.groupby("municipio")[cols].mean().round(2)
-            graficas["municipios"] = [str(x) for x in muni.index.tolist()]
-            for c in cols:
-                graficas[f"{c}_municipio"] = muni[c].fillna(0).tolist()
-
-    if TARGET in df.columns:
-        riesgo = df[TARGET].map(clasificar_riesgo_texto).value_counts()
-        orden = [x for x in ["Bajo", "Medio", "Alto"] if x in riesgo.index] + [x for x in riesgo.index if x not in ["Bajo", "Medio", "Alto"]]
-        graficas["riesgo_labels"] = orden
-        graficas["riesgo_values"] = [int(riesgo.get(x, 0)) for x in orden]
-
-    return graficas
-
-
-def entrenar_modelo(df: pd.DataFrame):
-    if not SKLEARN_AVAILABLE:
-        return None
-    if TARGET not in df.columns:
-        return None
-    if not all(col in df.columns for col in FEATURES):
-        return None
-
-    datos = df[FEATURES + [TARGET]].dropna().copy()
-    if datos.empty or datos[TARGET].nunique() < 2:
-        return None
-
-    X = datos[FEATURES]
-    y = datos[TARGET].map(clasificar_riesgo_texto)
-
-    modelo = RandomForestClassifier(n_estimators=180, random_state=42, class_weight="balanced")
-    accuracy = None
-
+@app.route('/api/measurements')
+def measurements():
     try:
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
-        modelo.fit(X_train, y_train)
-        pred = modelo.predict(X_test)
-        accuracy = accuracy_score(y_test, pred)
-    except Exception:
-        modelo.fit(X, y)
+        rows, qc = read_measurements()
+        station = request.args.get('station','all')
+        period = request.args.get('period','recent')
+        quality = request.args.get('quality','all')
+        if period not in ('recent','historic','all','7','14','30') or quality not in ('all','exclude','review','pending'):
+            return jsonify({'error':'Filtro no válido'}),400
+        if station != 'all' and not station.isdigit(): return jsonify({'error':'Estación no válida'}),400
+        selected = filtered(rows,station,period,quality)
+        points = daily(selected)
+        series = defaultdict(list)
+        for p in points: series[str(p['sensor_id'])].append(p)
+        return jsonify({'stats':stats(selected),'quality_available':qc,
+            'series':dict(series),'daily':points,
+            'recent_measurements':[serialize(r) for r in sorted(selected,key=lambda x:x['fecha_utc'],reverse=True)[:150]],
+            'note':'Promedios diarios calculados por sensor; se distingue si el día tiene al menos 18 registros. Se preservan las mediciones originales.'})
+    except (FileNotFoundError,sqlite3.Error) as e: return api_error(e)
 
-    importancias = pd.DataFrame({"variable": FEATURES, "importancia": modelo.feature_importances_})
-    importancias = importancias.sort_values("importancia", ascending=False)
+@app.route('/api/comparison')
+def comparison():
+    try:
+        rows,_ = read_measurements()
+        # Se comparan únicamente las observaciones recientes de 2026 en la intersección temporal.
+        recent = [r for r in rows if r['year']==str(datetime.now(timezone.utc).year)]
+        sensors = sorted(set(r['sensor_id'] for r in recent))
+        if not recent: return jsonify({'stations':[],'period':None})
+        starts = {sid:min(iso_time(r['fecha_utc']) for r in recent if r['sensor_id']==sid) for sid in sensors}
+        ends = {sid:max(iso_time(r['fecha_utc']) for r in recent if r['sensor_id']==sid) for sid in sensors}
+        start, end = max(starts.values()),min(ends.values())
+        comparable = [r for r in recent if start<=iso_time(r['fecha_utc'])<=end] if start<=end else []
+        result=[]
+        for sid in sensors:
+            sample=[r for r in comparable if r['sensor_id']==sid]
+            s=stats(sample)
+            result.append({'id':sid,'name':STATIONS.get(sid,(str(sid),))[0],**s})
+        return jsonify({'stations':result,'period':{'from':start.isoformat(),'to':end.isoformat()},
+            'note':'Ventana temporal común. Los promedios se calculan sobre las horas efectivamente observadas; la cobertura por estación puede variar.'})
+    except (FileNotFoundError,sqlite3.Error) as e: return api_error(e)
 
-    return {
-        "modelo": modelo,
-        "accuracy": accuracy,
-        "importancias": importancias,
-        "medianas": X.median(numeric_only=True).to_dict(),
-        "clases": list(modelo.classes_),
-    }
+@app.route('/api/export.csv')
+def export_csv():
+    try:
+        rows,_=read_measurements()
+        period=request.args.get('period','recent'); quality=request.args.get('quality','all'); station=request.args.get('station','all')
+        if period not in ('recent','historic','all','7','14','30') or quality not in ('all','exclude','review','pending') or (station!='all' and not station.isdigit()):
+            return jsonify({'error':'Filtro no válido'}),400
+        data=filtered(rows,station,period,quality)
+        buf=io.StringIO(); w=csv.writer(buf)
+        w.writerow(['calidad_evaluada','fuente','sensor_id','estacion','municipio','fecha_utc','pm25_ug_m3','es_cero','es_extremo','salto_abrupto','requiere_revision'])
+        for r in data:
+            w.writerow([r['quality_evaluated'],r['fuente'],r['sensor_id'],r['name'],r['municipality'],r['fecha_utc'],r['valor'],*[r[k] if r['quality_evaluated'] else None for k in ('es_cero','es_extremo','salto_abrupto','requiere_revision')]])
+        return Response('\ufeff'+buf.getvalue(),mimetype='text/csv; charset=utf-8',headers={'Content-Disposition':'attachment; filename="AERIS_PM25_OpenAQ.csv"'})
+    except (FileNotFoundError,sqlite3.Error) as e: return api_error(e)
 
-
-def prediccion_reglas(payload, df: pd.DataFrame):
-    score = 0
-    explicaciones = []
-
-    for col in ["pm25", "pm10", "no2", "o3", "indice_crecimiento_industrial"]:
-        if col in df.columns:
-            valor = float(payload.get(col, df[col].median()))
-            q75 = float(df[col].quantile(0.75))
-            q50 = float(df[col].quantile(0.50))
-            if valor >= q75:
-                score += 2
-                explicaciones.append(f"{col.upper()} por encima del percentil 75")
-            elif valor >= q50:
-                score += 1
-
-    if score >= 7:
-        riesgo = "Alto"
-        confianza = 0.82
-    elif score >= 4:
-        riesgo = "Medio"
-        confianza = 0.68
-    else:
-        riesgo = "Bajo"
-        confianza = 0.61
-
-    return riesgo, confianza, explicaciones
-
-
-@app.route("/")
-def inicio():
-    df = cargar_datos()
-    resumen = construir_resumen(df)
-    graficas = construir_graficas(df)
-    modelo_info = entrenar_modelo(df)
-
-    columnas_preview = [c for c in ["fecha", "municipio", "pm25", "pm10", "no2", "o3", "temperatura", "humedad", "indice_crecimiento_industrial", "riesgo_respiratorio"] if c in df.columns]
-    tabla_df = df[columnas_preview].head(12).copy()
-    if "fecha" in tabla_df.columns:
-        tabla_df["fecha"] = pd.to_datetime(tabla_df["fecha"], errors="coerce").dt.strftime("%Y-%m-%d")
-    tabla = tabla_df.to_html(index=False, classes="data-table", border=0)
-
-    municipios = sorted(df["municipio"].dropna().astype(str).unique()) if "municipio" in df.columns else []
-    medianas = modelo_info["medianas"] if modelo_info else {col: float(df[col].median()) for col in FEATURES if col in df.columns}
-    accuracy = modelo_info["accuracy"] if modelo_info else None
-    importancias = modelo_info["importancias"].to_dict(orient="records") if modelo_info else []
-
-    context = {
-        "resumen": resumen,
-        "graficas_json": json.dumps(graficas, ensure_ascii=False),
-        "tabla": tabla,
-        "municipios_json": json.dumps(municipios, ensure_ascii=False),
-        "medianas_json": json.dumps(medianas, ensure_ascii=False),
-        "accuracy": f"{accuracy:.2%}" if accuracy is not None else "Modelo base activo",
-        "importancias_json": json.dumps(importancias, ensure_ascii=False),
-    }
-    return render_template_string(TEMPLATE, **context)
-
-
-@app.route("/api/predict", methods=["POST"])
-def api_predict():
-    df = cargar_datos()
-    payload = request.get_json(silent=True) or request.form.to_dict()
-
-    datos_pred = {}
-    for col in FEATURES:
-        if col in df.columns:
-            try:
-                datos_pred[col] = float(payload.get(col, df[col].median()))
-            except Exception:
-                datos_pred[col] = float(df[col].median())
-
-    modelo_info = entrenar_modelo(df)
-    if modelo_info:
-        X = pd.DataFrame([datos_pred])[FEATURES]
-        pred = modelo_info["modelo"].predict(X)[0]
-        proba = modelo_info["modelo"].predict_proba(X)[0]
-        confianza = float(np.max(proba))
-        importancias = modelo_info["importancias"].head(3)["variable"].tolist()
-        explicaciones = [f"Variable clave: {v.upper()}" for v in importancias]
-        metodo = "Random Forest"
-    else:
-        pred, confianza, explicaciones = prediccion_reglas(datos_pred, df)
-        metodo = "Reglas estadísticas"
-
-    recomendaciones = {
-        "Bajo": "Condiciones aceptables. Mantener monitoreo preventivo.",
-        "Medio": "Riesgo moderado. Personas sensibles deberían reducir actividad intensa al aire libre.",
-        "Alto": "Riesgo elevado. Se recomienda limitar actividades exteriores y reforzar monitoreo ambiental.",
-    }
-
-    return jsonify({
-        "riesgo": clasificar_riesgo_texto(pred),
-        "confianza": round(confianza * 100, 2),
-        "metodo": metodo,
-        "explicaciones": explicaciones,
-        "recomendacion": recomendaciones.get(clasificar_riesgo_texto(pred), "Continuar monitoreando las condiciones ambientales."),
-    })
-
-
-@app.route("/health")
+@app.route('/health')
 def health():
-    return jsonify({"status": "ok", "project": "AERIS", "service": "contabo-vps", "mode": "production"})
+    try:
+        rows, quality = read_measurements()
+        latest = max((iso_time(r['fecha_utc']) for r in rows), default=None)
+        age = (datetime.now(timezone.utc)-latest).total_seconds()/3600 if latest else None
+        pending = sum(not r['quality_evaluated'] for r in rows)
+        ready = age is not None and 0 <= age <= 48 and quality and pending == 0
+        return jsonify({'project':'AERIS','status':'ok' if ready else 'degraded',
+                        'database_available':True,'latest_at':latest.isoformat() if latest else None,
+                        'age_hours':round(age,2) if age is not None else None,
+                        'quality_pending':pending,'quality_available':quality,
+                        'freshness_limit_hours':48}), 200 if ready else 503
+    except (FileNotFoundError,sqlite3.Error) as e:
+        return api_error(e)
 
+@app.route('/')
+def index():
+    return render_template_string(HTML)
 
-TEMPLATE = r'''
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AERIS | Riesgo Respiratorio Inteligente</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --bg: #06111f;
-            --bg2: #081827;
-            --panel: rgba(255, 255, 255, 0.075);
-            --panel2: rgba(255, 255, 255, 0.11);
-            --stroke: rgba(255, 255, 255, 0.13);
-            --text: #eef7ff;
-            --muted: #a7b9ca;
-            --cyan: #20d5ff;
-            --blue: #3587ff;
-            --green: #52ffa8;
-            --yellow: #ffd166;
-            --red: #ff5c7a;
-            --purple: #a855f7;
-        }
-        * { box-sizing: border-box; }
-        html { scroll-behavior: smooth; }
-        body {
-            margin: 0;
-            font-family: 'Inter', Arial, sans-serif;
-            color: var(--text);
-            background:
-                radial-gradient(circle at 20% 10%, rgba(32,213,255,.28), transparent 32%),
-                radial-gradient(circle at 80% 0%, rgba(168,85,247,.22), transparent 30%),
-                linear-gradient(160deg, var(--bg), var(--bg2));
-            min-height: 100vh;
-        }
-        .layout { display: grid; grid-template-columns: 280px 1fr; min-height: 100vh; }
-        aside {
-            position: sticky;
-            top: 0;
-            height: 100vh;
-            padding: 28px 22px;
-            border-right: 1px solid var(--stroke);
-            background: rgba(3, 10, 19, 0.62);
-            backdrop-filter: blur(18px);
-        }
-        .brand { display: flex; align-items: center; gap: 14px; margin-bottom: 36px; }
-        .brand-logo {
-            width: 62px; height: 62px; object-fit: contain;
-            border-radius: 18px; padding: 7px;
-            background: linear-gradient(145deg, rgba(255,255,255,.13), rgba(255,255,255,.035));
-            border: 1px solid rgba(255,255,255,.15);
-            box-shadow: 0 14px 38px rgba(0,0,0,.28), 0 0 28px rgba(32,213,255,.16);
-        }
-        .brand h1 { margin: 0; font-size: 24px; letter-spacing: 1px; }
-        .brand small { color: var(--muted); line-height: 1.35; }
-        nav a {
-            display: flex; align-items: center; gap: 12px;
-            padding: 13px 14px; margin: 8px 0;
-            color: var(--muted); text-decoration: none;
-            border-radius: 14px; font-weight: 700;
-        }
-        nav a:hover, nav a.active { color: var(--text); background: var(--panel2); }
-        main { padding: 34px; overflow: hidden; }
-        .hero {
-            position: relative;
-            border: 1px solid var(--stroke);
-            border-radius: 30px;
-            padding: 0;
-            overflow: hidden;
-            background:
-                radial-gradient(circle at 86% 12%, rgba(32,213,255,.22), transparent 27%),
-                radial-gradient(circle at 12% 88%, rgba(82,255,168,.09), transparent 30%),
-                linear-gradient(135deg, rgba(12,35,58,.96), rgba(8,25,42,.94));
-            box-shadow: 0 28px 90px rgba(0,0,0,.36);
-        }
-        .hero::before {
-            content: '';
-            position: absolute; inset: 0;
-            background-image:
-                linear-gradient(rgba(255,255,255,.022) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255,255,255,.022) 1px, transparent 1px);
-            background-size: 34px 34px;
-            mask-image: linear-gradient(to right, black, transparent 90%);
-            pointer-events: none;
-        }
-        .hero::after {
-            content: '';
-            position: absolute; inset: -110px -130px auto auto;
-            width: 390px; height: 390px; border-radius: 999px;
-            background: rgba(32,213,255,.19); filter: blur(58px);
-            pointer-events: none;
-        }
-        .hero-grid { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(280px, .65fr); align-items: stretch; position: relative; z-index: 1; }
-        .hero-copy { padding: 46px 44px 42px; }
-        .hero-brand { display: flex; align-items: center; gap: 18px; margin-bottom: 26px; }
-        .hero-logo { width: 92px; height: 92px; object-fit: contain; filter: drop-shadow(0 18px 25px rgba(0,0,0,.26)); }
-        .hero-brand strong { display: block; font-size: 29px; letter-spacing: 4px; }
-        .hero-brand small { display: block; color: var(--muted); margin-top: 5px; font-weight: 700; }
-        .hero-panel {
-            min-height: 100%; padding: 34px;
-            border-left: 1px solid var(--stroke);
-            background: linear-gradient(180deg, rgba(255,255,255,.065), rgba(255,255,255,.025));
-            display: flex; flex-direction: column; justify-content: center;
-        }
-        .signal-orb { width: 205px; height: 205px; margin: 0 auto 26px; position: relative; display: grid; place-items: center; }
-        .signal-orb::before, .signal-orb::after {
-            content: ''; position: absolute; border-radius: 50%; border: 1px solid rgba(32,213,255,.32);
-            animation: pulse 3.4s ease-in-out infinite;
-        }
-        .signal-orb::before { width: 100%; height: 100%; }
-        .signal-orb::after { width: 78%; height: 78%; animation-delay: .8s; }
-        .signal-core {
-            width: 118px; height: 118px; border-radius: 50%; display: grid; place-items: center; text-align: center;
-            background: radial-gradient(circle at 30% 25%, rgba(82,255,168,.42), rgba(32,213,255,.16) 55%, rgba(53,135,255,.10));
-            border: 1px solid rgba(82,255,168,.35); box-shadow: 0 0 54px rgba(32,213,255,.22);
-        }
-        .signal-core b { font-size: 23px; }
-        .signal-core small { display: block; color: var(--muted); margin-top: 4px; }
-        @keyframes pulse { 0%,100% { transform: scale(.92); opacity: .42; } 50% { transform: scale(1.06); opacity: 1; } }
-        .hero-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .hero-meta div { padding: 12px 13px; border-radius: 15px; background: rgba(255,255,255,.055); border: 1px solid var(--stroke); }
-        .hero-meta span { display: block; color: var(--muted); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .7px; }
-        .hero-meta b { display: block; margin-top: 6px; font-size: 14px; }
-        .feature-chips { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 22px; }
-        .feature-chip { padding: 8px 11px; border-radius: 999px; color: #cfe9f9; background: rgba(255,255,255,.055); border: 1px solid var(--stroke); font-size: 12px; font-weight: 800; }
-        .eyebrow {
-            display: inline-flex; gap: 8px; align-items: center;
-            padding: 8px 12px; border-radius: 999px;
-            background: rgba(82,255,168,.10); color: var(--green);
-            border: 1px solid rgba(82,255,168,.25);
-            font-weight: 800; font-size: 13px;
-        }
-        .hero h2 { font-size: clamp(42px, 6vw, 86px); line-height: .92; margin: 24px 0 16px; letter-spacing: -4px; }
-        .hero p { max-width: 860px; font-size: 18px; color: var(--muted); line-height: 1.65; }
-        .hero-actions { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 28px; }
-        .btn {
-            border: 0; border-radius: 16px; padding: 13px 18px;
-            font-weight: 900; cursor: pointer; color: #04111f;
-            background: linear-gradient(135deg, var(--cyan), var(--green));
-            box-shadow: 0 12px 30px rgba(32,213,255,.20);
-            text-decoration: none;
-        }
-        .btn.secondary { background: var(--panel2); color: var(--text); border: 1px solid var(--stroke); }
-        section { margin-top: 28px; }
-        .section-title { display: flex; align-items: end; justify-content: space-between; gap: 20px; margin: 36px 0 18px; }
-        .section-title h3 { margin: 0; font-size: 28px; letter-spacing: -1px; }
-        .section-title p { margin: 0; color: var(--muted); }
-        .grid { display: grid; gap: 18px; }
-        .grid.kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-        .card, .chart-card, .predict-card {
-            border: 1px solid var(--stroke); border-radius: 24px;
-            background: rgba(255,255,255,.07);
-            backdrop-filter: blur(16px);
-            box-shadow: 0 20px 55px rgba(0,0,0,.22);
-        }
-        .card { padding: 22px; min-height: 146px; position: relative; overflow: hidden; }
-        .card::after {
-            content: ''; position: absolute; right: -45px; top: -45px;
-            width: 120px; height: 120px; border-radius: 999px;
-            background: rgba(32,213,255,.15); filter: blur(10px);
-        }
-        .card span { color: var(--muted); font-weight: 800; font-size: 13px; text-transform: uppercase; letter-spacing: .8px; }
-        .card strong { display: block; margin-top: 14px; font-size: 34px; letter-spacing: -1px; }
-        .card small { display: block; color: var(--muted); margin-top: 10px; line-height: 1.4; }
-        .grid.charts { grid-template-columns: 1.35fr .9fr; }
-        .chart-card { padding: 22px; min-height: 380px; }
-        .chart-card h4, .predict-card h4 { margin: 0 0 16px; font-size: 19px; }
-        canvas { width: 100% !important; max-height: 330px; }
-        .predict-card { padding: 24px; }
-        .predict-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-        label { display: block; color: var(--muted); font-weight: 800; font-size: 13px; margin-bottom: 8px; }
-        input, select {
-            width: 100%; padding: 13px 14px;
-            border-radius: 14px; border: 1px solid var(--stroke);
-            background: rgba(255,255,255,.08); color: var(--text);
-            outline: none; font-weight: 700;
-        }
-        option { color: #06111f; }
-        .result {
-            margin-top: 18px; padding: 18px; border-radius: 18px;
-            background: rgba(32,213,255,.08); border: 1px solid rgba(32,213,255,.20);
-        }
-        .result h3 { margin: 0; font-size: 28px; }
-        .risk-low { color: var(--green); }
-        .risk-mid { color: var(--yellow); }
-        .risk-high { color: var(--red); }
-        .table-wrap { overflow-x: auto; border-radius: 20px; border: 1px solid var(--stroke); background: rgba(255,255,255,.06); }
-        .data-table { border-collapse: collapse; width: 100%; min-width: 980px; }
-        .data-table th { background: rgba(32,213,255,.13); color: var(--text); padding: 13px; text-align: left; font-size: 13px; }
-        .data-table td { padding: 12px 13px; border-top: 1px solid rgba(255,255,255,.09); color: #d8e8f6; font-size: 13px; }
-        .status-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
-        .pill-card { padding: 18px; border: 1px solid var(--stroke); border-radius: 22px; background: rgba(255,255,255,.06); }
-        .pill-card b { display: block; font-size: 20px; margin-top: 8px; }
-        .architecture { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; align-items: stretch; }
-        .arch-node { position: relative; padding: 21px; border: 1px solid var(--stroke); border-radius: 22px; background: rgba(255,255,255,.06); min-height: 150px; }
-        .arch-node:not(:last-child)::after { content: '→'; position: absolute; right: -22px; top: 50%; transform: translateY(-50%); color: var(--cyan); font-weight: 900; z-index: 3; }
-        .arch-icon { width: 42px; height: 42px; border-radius: 13px; display: grid; place-items: center; background: rgba(32,213,255,.11); border: 1px solid rgba(32,213,255,.20); font-size: 20px; }
-        .arch-node h4 { margin: 15px 0 7px; }
-        .arch-node p { color: var(--muted); margin: 0; font-size: 13px; line-height: 1.5; }
-        .ods-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
-        .ods { padding: 10px 13px; border-radius: 13px; background: rgba(82,255,168,.07); color: #caffdf; border: 1px solid rgba(82,255,168,.18); font-size: 12px; font-weight: 800; }
-        footer { margin: 40px 0 10px; color: var(--muted); text-align: center; }
-        @media (max-width: 1050px) {
-            .layout { grid-template-columns: 1fr; }
-            aside { position: relative; height: auto; }
-            nav { display: flex; gap: 8px; overflow-x: auto; }
-            nav a { white-space: nowrap; }
-            .grid.kpis, .grid.charts, .predict-grid, .status-row, .architecture { grid-template-columns: 1fr; }
-            .arch-node:not(:last-child)::after { content: '↓'; right: 50%; top: auto; bottom: -24px; transform: translateX(50%); }
-            main { padding: 20px; }
-            .hero-grid { grid-template-columns: 1fr; }
-            .hero-copy { padding: 30px 25px; }
-            .hero-panel { border-left: 0; border-top: 1px solid var(--stroke); }
-            .hero h2 { font-size: clamp(38px, 12vw, 62px); letter-spacing: -2.5px; }
-        }
-    </style>
-</head>
-<body>
-<div class="layout">
-    <aside>
-        <div class="brand">
-            <img src="{{ url_for('static', filename='logo.png') }}" class="brand-logo" alt="Logo de AERIS">
-            <div>
-                <h1>AERIS</h1>
-                <small>Air Intelligence<br>Respiratory Risk</small>
-            </div>
-        </div>
-        <nav>
-            <a class="active" href="#inicio">🏠 Inicio</a>
-            <a href="#indicadores">📊 Indicadores</a>
-            <a href="#analisis">📈 Análisis</a>
-            <a href="#prediccion">🤖 Predicción</a>
-            <a href="#datos">🧾 Dataset</a>
-        </nav>
-    </aside>
-
-    <main>
-        <section id="inicio" class="hero">
-            <div class="hero-grid">
-                <div class="hero-copy">
-                    <div class="hero-brand">
-                        <img src="{{ url_for('static', filename='logo.png') }}" class="hero-logo" alt="AERIS">
-                        <div><strong>AERIS</strong><small>Inteligencia ambiental para Querétaro</small></div>
-                    </div>
-                    <div class="eyebrow">● CLOUD SYSTEM ONLINE · CONTABO VPS</div>
-                    <h2>Convertimos el aire en datos. Los datos en prevención.</h2>
-                    <p>
-                        Plataforma inteligente de análisis y predicción de riesgo respiratorio que integra contaminantes atmosféricos,
-                        variables ambientales y crecimiento industrial para estudiar la evolución de la calidad del aire en Querétaro.
-                    </p>
-                    <div class="feature-chips">
-                        <span class="feature-chip">PM2.5</span><span class="feature-chip">PM10</span><span class="feature-chip">NO₂</span>
-                        <span class="feature-chip">O₃</span><span class="feature-chip">Machine Learning</span><span class="feature-chip">Cloud Analytics</span>
-                    </div>
-                    <div class="hero-actions">
-                        <a class="btn" href="#prediccion">Ejecutar predicción IA</a>
-                        <a class="btn secondary" href="#analisis">Explorar inteligencia ambiental</a>
-                    </div>
-                </div>
-                <div class="hero-panel">
-                    <div class="signal-orb"><div class="signal-core"><div><b>AERIS</b><small>Signal engine</small></div></div></div>
-                    <div class="hero-meta">
-                        <div><span>Infraestructura</span><b>Cloud VPS</b></div>
-                        <div><span>Motor</span><b>Random Forest</b></div>
-                        <div><span>Cobertura</span><b>{{ resumen.municipios_total }} municipios</b></div>
-                        <div><span>Periodo</span><b>{{ resumen.anio_min }}–{{ resumen.anio_max }}</b></div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <section id="indicadores">
-            <div class="section-title">
-                <div>
-                    <h3>Indicadores principales</h3>
-                    <p>Resumen ejecutivo generado a partir del dataset de AERIS.</p>
-                </div>
-            </div>
-            <div class="grid kpis">
-                <div class="card"><span>Registros</span><strong>{{ resumen.registros }}</strong><small>Instancias históricas procesadas.</small></div>
-                <div class="card"><span>Variables</span><strong>{{ resumen.variables }}</strong><small>Atributos ambientales e industriales.</small></div>
-                <div class="card"><span>Municipios</span><strong>{{ resumen.municipios_total }}</strong><small>{{ resumen.municipios_lista }}</small></div>
-                <div class="card"><span>Modelo IA</span><strong>{{ accuracy }}</strong><small>Clasificador de riesgo respiratorio.</small></div>
-            </div>
-        </section>
-
-        <section>
-            <div class="status-row">
-                <div class="pill-card">Promedio PM2.5 <b>{{ resumen.pm25_prom }}</b></div>
-                <div class="pill-card">Promedio PM10 <b>{{ resumen.pm10_prom }}</b></div>
-                <div class="pill-card">Municipio crítico <b>{{ resumen.municipio_critico }}</b></div>
-            </div>
-        </section>
-
-        <section id="analisis">
-            <div class="section-title">
-                <div>
-                    <h3>Análisis exploratorio</h3>
-                    <p>Lectura visual de tendencias, municipios y distribución de riesgo.</p>
-                </div>
-            </div>
-            <div class="grid charts">
-                <div class="chart-card">
-                    <h4>Evolución temporal de contaminantes</h4>
-                    <canvas id="timeChart"></canvas>
-                </div>
-                <div class="chart-card">
-                    <h4>Distribución de riesgo respiratorio</h4>
-                    <canvas id="riskChart"></canvas>
-                </div>
-                <div class="chart-card">
-                    <h4>PM2.5 y PM10 por municipio</h4>
-                    <canvas id="municipioChart"></canvas>
-                </div>
-                <div class="chart-card">
-                    <h4>Variables más importantes del modelo</h4>
-                    <canvas id="importanceChart"></canvas>
-                </div>
-            </div>
-        </section>
-
-        <section id="prediccion">
-            <div class="section-title">
-                <div>
-                    <h3>Predicción inteligente de riesgo</h3>
-                    <p>Prototipo de clasificación con Random Forest o reglas estadísticas de respaldo.</p>
-                </div>
-            </div>
-            <div class="predict-card">
-                <h4>Simulador AERIS</h4>
-                <form id="predictForm" class="predict-grid">
-                    <div><label>Municipio</label><select name="municipio" id="municipioSelect"></select></div>
-                    <div><label>PM2.5</label><input name="pm25" id="pm25" type="number" step="0.01"></div>
-                    <div><label>PM10</label><input name="pm10" id="pm10" type="number" step="0.01"></div>
-                    <div><label>NO2</label><input name="no2" id="no2" type="number" step="0.01"></div>
-                    <div><label>O3</label><input name="o3" id="o3" type="number" step="0.01"></div>
-                    <div><label>Temperatura</label><input name="temperatura" id="temperatura" type="number" step="0.01"></div>
-                    <div><label>Humedad</label><input name="humedad" id="humedad" type="number" step="0.01"></div>
-                    <div><label>Índice de crecimiento industrial</label><input name="indice_crecimiento_industrial" id="indice_crecimiento_industrial" type="number" step="0.01"></div>
-                </form>
-                <br>
-                <button class="btn" onclick="predecir()">Calcular riesgo</button>
-                <div id="resultado" class="result" style="display:none"></div>
-            </div>
-        </section>
-
-        <section id="datos">
-            <div class="section-title">
-                <div>
-                    <h3>Vista previa del dataset</h3>
-                    <p>Periodo analizado: {{ resumen.fecha_min }} a {{ resumen.fecha_max }} | Tendencia PM2.5: {{ resumen.tendencia_pm25 }}</p>
-                </div>
-            </div>
-            <div class="table-wrap">
-                {{ tabla|safe }}
-            </div>
-        </section>
-
-        <section id="infraestructura">
-            <div class="section-title">
-                <div>
-                    <h3>Arquitectura cloud de AERIS</h3>
-                    <p>El flujo del proyecto está preparado para crecer desde la adquisición de datos hasta la visualización predictiva.</p>
-                </div>
-            </div>
-            <div class="architecture">
-                <div class="arch-node"><div class="arch-icon">🌫️</div><h4>Fuentes ambientales</h4><p>Calidad del aire, contaminantes y variables ambientales que alimentan el análisis.</p></div>
-                <div class="arch-node"><div class="arch-icon">☁️</div><h4>Capa cloud</h4><p>Infraestructura desplegada en VPS y preparada para sincronización con almacenamiento en nube.</p></div>
-                <div class="arch-node"><div class="arch-icon">🧠</div><h4>Motor analítico</h4><p>EDA, tendencias, comparación municipal y clasificación predictiva de riesgo.</p></div>
-                <div class="arch-node"><div class="arch-icon">📡</div><h4>AERIS Dashboard</h4><p>Visualización web accesible desde Internet para comunicar indicadores y resultados.</p></div>
-            </div>
-            <div class="ods-row">
-                <span class="ods">ODS 3 · Salud y Bienestar</span>
-                <span class="ods">ODS 11 · Ciudades Sostenibles</span>
-                <span class="ods">ODS 13 · Acción por el Clima</span>
-            </div>
-        </section>
-
-        <footer>
-            AERIS · Proyecto Integrador II · David Israel Atilano Quiroz · Ingeniería en Datos e Inteligencia Artificial · UPQ
-        </footer>
-    </main>
-</div>
-
+HTML = r'''<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AERIS | Inteligencia ambiental de Querétaro</title>
+<link rel="icon" href="/logo.png" type="image/png">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+:root{--bg:#050b16;--panel:#101d30;--panel2:#13253a;--stroke:#25415a;--text:#eaf6ff;--muted:#9db7cb;--cyan:#67e8f9;--green:#5ce4b2;--amber:#ffd078;--red:#ff8794;--blue:#91a4ff}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:radial-gradient(circle at 70% -5%,#163455 0,transparent 35%),var(--bg);color:var(--text);font:14px Inter,Arial,sans-serif}a{color:inherit;text-decoration:none}
+.layout{display:grid;grid-template-columns:248px minmax(0,1fr);min-height:100vh}aside{position:sticky;top:0;height:100vh;padding:27px 16px;border-right:1px solid var(--stroke);background:#081321}main{min-width:0;max-width:1660px;width:100%;padding:0 34px 48px;margin:auto}
+.brand{display:flex;align-items:center;gap:12px;padding:0 10px 26px;border-bottom:1px solid var(--stroke)}.brand img{width:49px;height:49px;object-fit:contain;border-radius:12px}.logo-fallback{display:none;background:linear-gradient(135deg,var(--cyan),var(--blue));color:#081321;border-radius:13px;width:49px;height:49px;place-items:center;font-size:25px;font-weight:900}.brand h1{font-size:25px;letter-spacing:2px;margin:0}.brand small{font-size:9px;color:var(--muted);letter-spacing:1px}.navtitle{margin:30px 10px 12px;color:#7998b1;font-size:10px;letter-spacing:1.6px;font-weight:800}nav a{display:block;padding:14px;border-radius:12px;margin:4px 0;color:var(--muted);font-weight:700}nav a:hover,nav a.active{background:#1b3147;color:var(--cyan)}.sidebar-note{margin:36px 12px;color:var(--muted);font-size:11px;line-height:1.8}
+.topbar{min-height:78px;display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:1px solid var(--stroke)}.crumb{font-size:10px;color:var(--muted);letter-spacing:1.4px;font-weight:800}.topactions{display:flex;gap:9px;align-items:center;flex-wrap:wrap}.chip{padding:10px 13px;border:1px solid var(--stroke);border-radius:99px;font-size:11px;color:var(--muted);font-weight:700}.btn{cursor:pointer;background:linear-gradient(110deg,#68e4f3,#8e9fff);color:#061222;border:0;border-radius:12px;padding:12px 17px;font-weight:800;font:inherit}.btn.secondary{background:#172b40;color:var(--text);border:1px solid var(--stroke)}.btn:hover{filter:brightness(1.13)}
+.hero{margin:26px 0 38px;padding:52px;border:1px solid #284962;border-radius:27px;background:radial-gradient(circle at 86% 33%,#1b4d79,transparent 43%),linear-gradient(120deg,#14283e,#0a1424);position:relative;overflow:hidden}.eyebrow{color:var(--green);font-size:11px;font-weight:800;letter-spacing:1.6px}.hero h2{font-size:clamp(40px,5vw,76px);line-height:1.08;letter-spacing:-3px;margin:25px 0}.hero h2 em{font-style:normal;color:var(--cyan)}.hero p{max-width:700px;color:#bad0e0;line-height:1.9;font-size:15px}.hero-actions{display:flex;gap:12px;margin-top:25px;flex-wrap:wrap}
+section{margin:36px 0;scroll-margin-top:20px}.section-head{display:flex;justify-content:space-between;align-items:end;gap:15px;margin-bottom:18px}.section-head h3{font-size:25px;margin:0 0 8px}.section-head p{margin:0;color:var(--muted);line-height:1.6}.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:15px}.card,.panel{background:linear-gradient(145deg,#14263b,#0d1a2b);border:1px solid var(--stroke);border-radius:20px;padding:22px;min-width:0}.card small{display:block;color:var(--muted);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px}.card strong{display:block;font-size:clamp(24px,3vw,37px);margin:14px 0 8px;overflow-wrap:anywhere}.card span{color:var(--muted);font-size:11px;line-height:1.6}.grid2{display:grid;grid-template-columns:1.4fr 1fr;gap:18px}.mapgrid{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(270px,.75fr);gap:17px}#map{height:455px;border-radius:17px;background:#10283d}.maplist{max-height:455px;overflow:auto;display:grid;align-content:start;gap:8px}.station{border:1px solid var(--stroke);border-radius:13px;background:#13263b;padding:13px;cursor:pointer;color:var(--text);text-align:left;font:inherit}.station:hover,.station.selected{border-color:var(--cyan);background:#1b3b52}.station b,.station small{display:block}.station small{margin-top:5px;color:var(--muted);line-height:1.6}.maptip{margin-top:12px;color:var(--muted);font-size:12px;line-height:1.7}
+.filters{display:flex;flex-wrap:wrap;gap:12px;margin:15px 0 20px}.filters>div{min-width:175px;flex:1}label{display:block;color:var(--muted);font-size:11px;font-weight:700;margin-bottom:7px}select{width:100%;background:#0c1c2e;border:1px solid #35516a;color:var(--text);padding:12px;border-radius:11px;font:inherit}select:focus{outline:2px solid var(--cyan)}.chartbox{height:350px;position:relative}.chartbox canvas{max-height:100%}.subtle{color:var(--muted);font-size:12px;line-height:1.8}.inline-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:17px 0}.mini{border:1px solid var(--stroke);border-radius:13px;padding:15px;background:#0c1d30}.mini small{display:block;color:var(--muted)}.mini b{display:block;font-size:21px;margin-top:8px}.note{border-left:3px solid var(--cyan);padding:14px 17px;background:#10263a;border-radius:0 12px 12px 0;color:#bed7e8;line-height:1.8}.warn{border-left-color:var(--amber)}.tablewrap{overflow:auto;max-height:460px}table{border-collapse:collapse;width:100%;min-width:760px}th,td{text-align:left;padding:12px;border-bottom:1px solid var(--stroke);font-size:12px}th{color:var(--cyan);position:sticky;top:0;background:#122338}td{color:#c9deed}.tag{display:inline-block;border-radius:7px;padding:5px 8px;background:#183e38;color:var(--green);font-size:10px;font-weight:800}.tag.alert{background:#483421;color:var(--amber)}.footer{color:var(--muted);font-size:11px;text-align:center;padding:35px 0}.error{color:var(--red)}
+body.light{--bg:#eef4f9;--panel:#fff;--panel2:#fff;--stroke:#c7d9e7;--text:#142c41;--muted:#527088;background:#eef4f9}body.light aside{background:#e2edf5}body.light .panel,body.light .card,body.light .mini{background:#fff}body.light .hero{background:linear-gradient(120deg,#c9e5f3,#e5edff)}body.light .hero p{color:#38576f}body.light .station{background:#e8f3fb}body.light .station:hover,body.light .station.selected{background:#d3eaf7}body.light select{background:#fff;color:#142c41}body.light .note{background:#e1f1fa;color:#254860}body.light th{background:#d9eaf5}body.light td{color:#25445a}body.light .btn.secondary{background:#e1edf6;color:#18334a}body.light .brand small{color:#456}
+@media(max-width:1100px){.layout{grid-template-columns:1fr}aside{position:relative;height:auto;padding:16px}nav{display:flex;overflow:auto}nav a{white-space:nowrap}.sidebar-note,.navtitle{display:none}main{padding:0 19px 35px}.mapgrid,.grid2{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(2,1fr)}}@media(max-width:640px){.hero{padding:28px}.hero h2{letter-spacing:-1.7px}.kpis,.inline-stats{grid-template-columns:1fr}.topbar{flex-wrap:wrap;padding:12px 0}.section-head{display:block}.maplist{max-height:270px}}
+</style></head><body>
+{% include 'v2/snapshot_notice.html' %}
+<div class="layout"><aside><div class="brand"><img id="logo" src="/logo.png" alt="Logo AERIS" onerror="this.style.display='none';document.getElementById('logoFallback').style.display='grid'"><div id="logoFallback" class="logo-fallback">A</div><div><h1>AERIS</h1><small>ENVIRONMENTAL INTELLIGENCE</small></div></div><div class="navtitle">WORKSPACE / EXPLORAR</div><nav><a href="#inicio">⌂ Inicio</a><a href="#indicadores">▤ Indicadores</a><a href="#observatorio">◉ Observatorio</a><a href="#mapa">◎ Mapa interactivo</a><a href="#comparador">▥ Comparador</a><a href="#calidad">◇ Calidad de datos</a><a href="#datos">≡ Mediciones</a><a href="#metodologia">ⓘ Metodología</a></nav><div class="sidebar-note">● DATOS OBSERVADOS · OpenAQ API v3<br>Actualización mediante sincronización local. No transmisión en vivo.</div></aside>
+<main><header class="topbar"><div class="crumb">AERIS / PLATAFORMA DE INTELIGENCIA AMBIENTAL</div><div class="topactions"><span class="chip" id="syncChip">● Consultando base local…</span><button class="btn secondary" id="themeBtn">◐ Tema</button><button class="btn secondary" id="presentBtn">⛶ Presentar</button></div></header>
+<section class="hero" id="inicio"><div class="eyebrow">● QUERÉTARO · MONITOREO AMBIENTAL DOCUMENTADO</div><h2>Los datos del aire.<br><em>Una nueva perspectiva.</em></h2><p>Explora mediciones horarias observadas de partículas PM2.5, compara estaciones, identifica anomalías y conoce la última lectura disponible. Información obtenida mediante OpenAQ y conservada en una base de datos local con trazabilidad.</p><div class="hero-actions"><a class="btn" href="#observatorio">Explorar mediciones ↗</a><a class="btn secondary" href="#mapa">Ver mapa interactivo →</a><a class="btn secondary" href="#metodologia">Conocer fuentes</a></div></section>
+<div class="note warn" id="globalError" style="display:none"></div>
+<section id="indicadores"><div class="section-head"><div><h3>Panorama ambiental <span style="color:var(--cyan)">/ a?o actual</span></h3><p>Resumen de observaciones recientes; los registros históricos se muestran por separado.</p></div></div><div class="kpis"><div class="card"><small>Mediciones del a?o actual</small><strong id="kCount">—</strong><span>PM2.5 · observaciones horarias</span></div><div class="card"><small>Estaciones del a?o actual</small><strong id="kStations">—</strong><span>Estaciones con registros disponibles</span></div><div class="card"><small>Promedio observado</small><strong id="kMean">—</strong><span>µg/m³ · sin excluir alertas</span></div><div class="card"><small>Pendientes de revisión</small><strong id="kReview">—</strong><span>Alertas exploratorias de calidad</span></div></div><div class="inline-stats"><div class="mini"><small>Última fecha disponible (UTC)</small><b id="lastDate">—</b></div><div class="mini"><small>Valores cero (todos los periodos)</small><b id="zeroCount">—</b></div><div class="mini"><small>Archivo histórico separado</small><b id="historicCount">—</b></div></div></section>
+<section id="mapa"><div class="section-head"><div><h3>Mapa interactivo de Querétaro</h3><p>Explora el territorio con el cursor y selecciona una estación en el panel lateral.</p></div></div><div class="panel"><div class="mapgrid"><div id="map"></div><div><div class="maplist" id="stationList"><p class="subtle">Cargando estaciones…</p></div><div class="maptip" id="mapHint">Las estaciones sin coordenadas verificadas no se colocan como marcadores. El resaltado territorial es una referencia geográfica, no un mapa de concentraciones.</div></div></div></div></section>
+<section id="observatorio"><div class="section-head"><div><h3>Observatorio PM2.5</h3><p>Mediciones observadas, evolución temporal y última lectura disponible por sensor.</p></div></div><div class="panel"><div class="filters"><div><label for="stationFilter">Estación</label><select id="stationFilter"><option value="all">Todas las estaciones</option></select></div><div><label for="periodFilter">Periodo</label><select id="periodFilter"><option value="recent">2026 · todo lo disponible</option><option value="7">Últimos 7 días con datos de 2026</option><option value="14">Últimos 14 días con datos de 2026</option><option value="30">Últimos 30 días con datos de 2026</option><option value="historic">Histórico anterior a 2026</option><option value="all">Todos los periodos (sin unir series)</option></select></div><div><label for="qualityFilter">Tratamiento de alertas</label><select id="qualityFilter"><option value="all">Mostrar datos originales</option><option value="exclude">Solo evaluadas sin alerta</option><option value="review">Solo observaciones en revisión</option></select></div><div><label for="chartMode">Visualización</label><select id="chartMode"><option value="line">Líneas</option><option value="bar">Barras</option></select></div></div><div class="inline-stats"><div class="mini"><small>Registros filtrados</small><b id="fCount">—</b></div><div class="mini"><small>Promedio del filtro</small><b id="fMean">—</b></div><div class="mini"><small>Última medición del filtro</small><b id="fLatest">—</b></div></div><div class="chartbox"><canvas id="trendChart"></canvas></div><p class="subtle" id="trendStatus">Cargando datos…</p><div class="note" id="insight">Selecciona una estación para explorar sus mediciones.</div><div class="hero-actions"><button class="btn secondary" id="downloadCSV">↓ Exportar CSV filtrado</button><button class="btn secondary" id="downloadPNG">↓ Exportar gráfica PNG</button></div></div></section>
+<section id="comparador"><div class="section-head"><div><h3>Comparador de estaciones</h3><p>Promedios de PM2.5 del a?o actual calculados sobre una ventana temporal compartida.</p></div></div><div class="panel"><div class="chartbox"><canvas id="compareChart"></canvas></div><p class="subtle" id="compareNote">Cargando comparaciones…</p></div></section>
+<section id="calidad"><div class="section-head"><div><h3>Auditoría y calidad de datos</h3><p>Reglas de detección reproducibles sin alterar las mediciones originales.</p></div></div><div class="kpis"><div class="card"><small>Total auditado</small><strong id="qcTotal">—</strong><span>Todos los años en SQLite</span></div><div class="card"><small>Valores en cero</small><strong id="qcZero">—</strong><span>Se identifican; no se descartan automáticamente</span></div><div class="card"><small>Extremos &gt; 100</small><strong id="qcExtreme">—</strong><span>Umbral interno exploratorio (µg/m³)</span></div><div class="card"><small>En revisión</small><strong id="qcReview">—</strong><span>Extremos o saltos horarios ≥ 100 µg/m³</span></div></div><div class="note warn" style="margin-top:16px">Una alerta de revisión <b>no confirma un error de medición</b>. La ausencia de alerta tampoco certifica calidad. Los valores originales permanecen intactos. La cobertura y los indicadores se calculan sobre registros disponibles, no sobre una red continua garantizada.</div></section>
+<section id="datos"><div class="section-head"><div><h3>Explorador de registros</h3><p>Las 150 observaciones más recientes que cumplen los filtros seleccionados.</p></div></div><div class="panel tablewrap"><table><thead><tr><th>Estación</th><th>Fecha UTC</th><th>PM2.5 (µg/m³)</th><th>Control de calidad</th></tr></thead><tbody id="dataRows"><tr><td colspan="4">Cargando…</td></tr></tbody></table></div></section>
+<section id="metodologia"><div class="section-head"><div><h3>Fuentes y metodología</h3><p>Transparencia de procedencia, procesamiento y limitaciones.</p></div></div><div class="grid2"><div class="panel"><h4>Origen de los datos</h4><p class="subtle">Los registros PM2.5 mostrados se recuperaron de <a href="https://openaq.org/" target="_blank" rel="noopener" style="color:var(--cyan)">OpenAQ</a> mediante su API v3 de datos horarios por sensor y se almacenaron en <code>data/aeris_air_quality.db</code>. OpenAQ agrega mediciones procedentes de diversas redes. La identificación del operador primario de cada sensor debe verificarse en los metadatos antes de atribuirlo específicamente a SEMCAC o SINAICA.</p><p class="subtle">Fuentes institucionales para consulta y contraste: <a href="https://sinaica.inecc.gob.mx/" target="_blank" rel="noopener" style="color:var(--cyan)">SINAICA</a> y sistemas locales de monitoreo de Querétaro. Estas referencias no implican que todos los registros del dashboard hayan sido descargados directamente de ellas.</p></div><div class="panel"><h4>Alcance de AERIS</h4><p class="subtle">La fecha de la última observación depende de la sincronización manual o programada del proyecto. No se transmite un flujo en vivo. El sistema ofrece análisis descriptivo, no diagnósticos médicos ni un índice oficial de calidad del aire.</p><p class="subtle">El a?o actual y los dem?s a?os se separan de forma predeterminada. El filtro de alertas permite análisis de sensibilidad sin modificar SQLite. Los promedios diarios requieren al menos 18 registros horarios para considerarse días con cobertura suficiente.</p></div></div></section>
+<div class="footer">AERIS · Plataforma de investigación ambiental · Querétaro, México · Mediciones observadas recuperadas vía OpenAQ · Uso exploratorio</div>
+</main></div>
 <script>
-const graficas = {{ graficas_json|safe }};
-const municipios = {{ municipios_json|safe }};
-const medianas = {{ medianas_json|safe }};
-const importancias = {{ importancias_json|safe }};
-
-const palette = {
-    cyan: '#20d5ff', blue: '#3587ff', green: '#52ffa8', yellow: '#ffd166', red: '#ff5c7a', purple: '#a855f7', grid: 'rgba(255,255,255,.11)', text: '#d8e8f6'
-};
-Chart.defaults.color = palette.text;
-Chart.defaults.borderColor = palette.grid;
-Chart.defaults.font.family = 'Inter';
-
-function makeLineChart() {
-    const ctx = document.getElementById('timeChart');
-    new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: graficas.labels_tiempo || [],
-            datasets: [
-                { label: 'PM2.5', data: graficas.pm25_tiempo || [], borderColor: palette.cyan, backgroundColor: 'rgba(32,213,255,.15)', tension: .35, fill: true },
-                { label: 'PM10', data: graficas.pm10_tiempo || [], borderColor: palette.green, backgroundColor: 'rgba(82,255,168,.10)', tension: .35, fill: false },
-                { label: 'NO2', data: graficas.no2_tiempo || [], borderColor: palette.yellow, tension: .35, fill: false },
-                { label: 'O3', data: graficas.o3_tiempo || [], borderColor: palette.purple, tension: .35, fill: false }
-            ]
-        },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } }, scales: { x: { ticks: { maxTicksLimit: 9 } }, y: { beginAtZero: false } } }
-    });
+'use strict';
+const $=id=>document.getElementById(id);let overview=null,payload=null,trendChart=null,compareChart=null,map=null,markers={},geoLayer=null,loadSeq=0;
+const fmt=n=>n===null||n===undefined?'—':Number(n).toLocaleString('es-MX',{maximumFractionDigits:2});
+const unit=n=>n===null||n===undefined?'—':fmt(n)+' µg/m³';
+const safe=t=>String(t??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+async function getJSON(url){const r=await fetch(url);let x=await r.json();if(!r.ok)throw Error(x.error||'Error de consulta');return x;}
+function showError(err){$('globalError').style.display='block';$('globalError').textContent='No se pudieron cargar los datos: '+err.message;}
+function createMap(){if(typeof L==='undefined'){$('mapHint').textContent='El mapa requiere conexión para cargar Leaflet. El selector de estaciones sigue disponible.';return;}
+ map=L.map('map',{scrollWheelZoom:false}).setView([20.65,-100.4],9);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap contributors',maxZoom:18}).addTo(map);
+ // Capa territorial opcional: se solicita un GeoJSON público. Su ausencia no afecta las mediciones.
+ const url='https://raw.githubusercontent.com/angelnmara/geojson/master/mexicoHigh.json';
+ fetch(url).then(r=>{if(!r.ok)throw Error('sin mapa');return r.json()}).then(g=>{
+   const features=(g.features||[]).filter(f=>/quer[eé]taro/i.test(JSON.stringify(f.properties||{})));
+   if(!features.length)return;
+   geoLayer=L.geoJSON({type:'FeatureCollection',features},{style:{color:'#67e8f9',weight:2,fillColor:'#1e87a0',fillOpacity:.12},onEachFeature:(f,l)=>{
+     l.on('mouseover',()=>{l.setStyle({fillOpacity:.33,weight:4,fillColor:'#55d5ee'});$('mapHint').textContent='Querétaro · Zona geográfica resaltada. Selecciona una estación para ver su última medición.'});
+     l.on('mouseout',()=>{geoLayer.resetStyle(l);$('mapHint').textContent='El mapa resalta el territorio; las lecturas pertenecen a estaciones, no a toda la superficie del estado.'});
+     l.bindTooltip('Querétaro · Selecciona una estación del panel');
+   }}).addTo(map);
+   map.fitBounds(geoLayer.getBounds(),{padding:[25,25]});
+ }).catch(()=>{$('mapHint').textContent='Mapa base disponible. No se pudo cargar el contorno opcional del estado; las mediciones y el selector funcionan normalmente.'});
 }
+function pickStation(id){$('stationFilter').value=String(id);document.querySelectorAll('.station').forEach(x=>x.classList.toggle('selected',x.dataset.id===String(id)));if(markers[id]){map.flyTo(markers[id].getLatLng(),12,{duration:.8});markers[id].openPopup()}loadData();document.querySelector('#observatorio').scrollIntoView({behavior:'smooth'});}
+function populateStations(){const select=$('stationFilter');$('stationList').innerHTML='';for(const s of overview.stations){const o=document.createElement('option');o.value=s.id;o.textContent=s.name+' · '+s.years.join(', ');select.appendChild(o);
+ const b=document.createElement('button');b.className='station';b.dataset.id=s.id;b.innerHTML='<b>'+safe(s.name)+'</b><small>'+safe(s.municipality)+' · '+fmt(s.count)+' registros · '+safe(s.years.join(', '))+'</small><small>Última lectura: '+unit(s.latest.valor)+' · '+safe(s.latest.fecha_utc)+'</small>';
+ b.onclick=()=>pickStation(s.id);$('stationList').appendChild(b);
+ if(map&&s.lat!==null&&s.lon!==null){const marker=L.circleMarker([s.lat,s.lon],{radius:10,color:'#67e8f9',fillColor:'#3587ff',fillOpacity:.85,weight:3}).addTo(map);marker.bindPopup('<b>'+safe(s.name)+'</b><p>Última lectura: '+unit(s.latest.valor)+'</p><small>'+safe(s.latest.fecha_utc)+'</small>');marker.on('click',()=>pickStation(s.id));markers[s.id]=marker;}
+}}
+async function loadOverview(){overview=await getJSON('/api/overview');$('globalError').style.display='none';const r=overview.recent,t=overview.total;
+ $('kCount').textContent=fmt(r.count);$('kStations').textContent=fmt(r.stations);$('kMean').textContent=unit(r.mean);$('kReview').textContent=fmt(r.review);
+ $('lastDate').textContent=r.latest_at?r.latest_at.replace('T',' ').replace('Z',' UTC'):'—';$('zeroCount').textContent=fmt(t.zeros);$('historicCount').textContent=fmt(t.count-r.count);
+ $('qcTotal').textContent=fmt(t.count);$('qcZero').textContent=fmt(t.zeros);$('qcExtreme').textContent=fmt(t.extremes);$('qcReview').textContent=fmt(t.review);
+ $('syncChip').textContent='● Último registro: '+(r.latest_at||'sin datos');
+ if(overview.total.quality_pending){$('globalError').style.display='block';$('globalError').textContent=fmt(overview.total.quality_pending)+' observaciones pendientes de evaluar. El filtro de evaluadas sin alerta las excluye.';}
+ if(!overview.quality_available){$('qcReview').textContent='N/D';$('kReview').textContent='N/D';$('globalError').style.display='block';$('globalError').textContent='La tabla calidad_mediciones no existe: los indicadores de control de calidad aún no están disponibles.';}
+ populateStations();await Promise.all([loadData(),loadComparison()]);}
+function filters(){return {station:$('stationFilter').value,period:$('periodFilter').value,quality:$('qualityFilter').value};}
+async function loadData(){const seq=++loadSeq;const q=new URLSearchParams(filters());$('trendStatus').textContent='Consultando mediciones…';try{const d=await getJSON('/api/measurements?'+q);if(seq!==loadSeq)return;payload=d;
+ $('fCount').textContent=fmt(d.stats.count);$('fMean').textContent=unit(d.stats.mean);$('fLatest').textContent=unit(d.stats.latest);
+ $('trendStatus').textContent='Última lectura: '+(d.stats.latest_at||'sin datos')+' UTC · '+d.stats.stations+' estaciones · '+d.stats.review+' observaciones en revisión';
+ $('insight').textContent='Los puntos de la gráfica son promedios diarios por estación. Los días con menos de 18 registros se representan como interrupciones. Los datos marcados no se eliminan de la base original.';
+ drawTrend();renderRows(d.recent_measurements);
+ }catch(e){if(seq!==loadSeq)return;$('trendStatus').textContent='Error: '+e.message;showError(e);}}
+function drawTrend(){if(trendChart)trendChart.destroy();if(!payload)return;const good=payload.daily.filter(x=>x.sufficient);const days=[...new Set(payload.daily.map(x=>x.day))].sort();const ids=[...new Set(good.map(x=>x.sensor_id))];const colors=['#67e8f9','#91a4ff','#5ce4b2','#ffd078','#ff8794','#d1a6ff','#76a8ef'];
+ const datasets=ids.map((id,i)=>{const lookup=new Map(good.filter(x=>x.sensor_id===id).map(x=>[x.day,x.mean]));const s=overview.stations.find(x=>x.id===id);return {label:s?s.name:String(id),data:days.map(day=>lookup.has(day)?lookup.get(day):null),borderColor:colors[i%colors.length],backgroundColor:colors[i%colors.length]+'55',borderWidth:2,spanGaps:false,tension:.25,pointRadius:2};});
+ trendChart=new Chart($('trendChart'),{type:$('chartMode').value,data:{labels:days,datasets},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{position:'bottom',labels:{color:'#a9c4d8'}},tooltip:{callbacks:{label:c=>c.dataset.label+': '+unit(c.parsed.y)}}},scales:{x:{ticks:{color:'#9db7cb',maxTicksLimit:9}},y:{beginAtZero:true,ticks:{color:'#9db7cb'},title:{display:true,text:'PM2.5 (µg/m³)',color:'#9db7cb'}}}}});
+ if(!days.length)$('trendStatus').textContent+=' · No hay días con al menos 18 registros para el filtro actual.';}
+function renderRows(rows){$('dataRows').innerHTML=rows.length?rows.map(r=>'<tr><td>'+safe(r.name)+'</td><td>'+safe(r.fecha_utc)+'</td><td>'+fmt(r.valor)+'</td><td><span class="tag '+(r.requiere_revision?'alert':'')+'">'+(r.requiere_revision?'Revisión pendiente':'Sin alerta')+'</span></td></tr>').join(''):'<tr><td colspan="4">No hay registros para los filtros actuales.</td></tr>';}
+async function loadComparison(){try{const d=await getJSON('/api/comparison');if(compareChart)compareChart.destroy();compareChart=new Chart($('compareChart'),{type:'bar',data:{labels:d.stations.map(x=>x.name),datasets:[{data:d.stations.map(x=>x.mean),label:'PM2.5 promedio (µg/m³)',backgroundColor:['#67e8f9','#91a4ff','#5ce4b2','#ffd078','#ff8794'],borderRadius:8}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#a9c4d8'}},y:{beginAtZero:true,ticks:{color:'#a9c4d8'}}}}});
+ $('compareNote').textContent=d.period?'Ventana común UTC: '+d.period.from+' a '+d.period.to+'. Cobertura horaria variable entre estaciones; no se han imputado horas faltantes.':'No hay estaciones recientes comparables.';
+ }catch(e){$('compareNote').textContent='No se pudo calcular la comparación: '+e.message;}}
+for(const id of ['stationFilter','periodFilter','qualityFilter'])$(id).addEventListener('change',loadData);$('chartMode').addEventListener('change',drawTrend);
+$('downloadCSV').onclick=()=>{location.href='/api/export.csv?'+new URLSearchParams(filters());};$('downloadPNG').onclick=()=>{if(!trendChart)return;const a=document.createElement('a');a.href=trendChart.toBase64Image();a.download='AERIS_PM25_grafica.png';a.click()};
+$('themeBtn').onclick=()=>document.body.classList.toggle('light');$('presentBtn').onclick=()=>{const a=document.querySelector('aside');a.style.display=a.style.display==='none'?'':'none';document.querySelector('.layout').style.gridTemplateColumns=a.style.display==='none'?'1fr':'';if(map)setTimeout(()=>map.invalidateSize(),250)};
+const observer=new IntersectionObserver(entries=>{const active=entries.find(e=>e.isIntersecting);if(active)document.querySelectorAll('nav a').forEach(a=>a.classList.toggle('active',a.getAttribute('href')==='#'+active.target.id))},{rootMargin:'-15% 0px -70% 0px'});document.querySelectorAll('main section[id]').forEach(x=>observer.observe(x));
+createMap();loadOverview().catch(showError);
+</script></body></html>'''
 
-function makeRiskChart() {
-    const ctx = document.getElementById('riskChart');
-    new Chart(ctx, {
-        type: 'doughnut',
-        data: { labels: graficas.riesgo_labels || [], datasets: [{ data: graficas.riesgo_values || [], backgroundColor: [palette.green, palette.yellow, palette.red, palette.blue] }] },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } }, cutout: '62%' }
-    });
-}
+from aeris_web import register_v2
+register_v2(app, lambda: DB)
 
-function makeMunicipioChart() {
-    const ctx = document.getElementById('municipioChart');
-    new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: graficas.municipios || [],
-            datasets: [
-                { label: 'PM2.5', data: graficas.pm25_municipio || [], backgroundColor: 'rgba(32,213,255,.72)' },
-                { label: 'PM10', data: graficas.pm10_municipio || [], backgroundColor: 'rgba(82,255,168,.58)' }
-            ]
-        },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } }, scales: { y: { beginAtZero: true } } }
-    });
-}
-
-function makeImportanceChart() {
-    const ctx = document.getElementById('importanceChart');
-    const labels = importancias.map(x => x.variable.toUpperCase());
-    const values = importancias.map(x => Number((x.importancia * 100).toFixed(2)));
-    new Chart(ctx, {
-        type: 'bar',
-        data: { labels, datasets: [{ label: 'Importancia (%)', data: values, backgroundColor: 'rgba(53,135,255,.72)' }] },
-        options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true } } }
-    });
-}
-
-function initForm() {
-    const select = document.getElementById('municipioSelect');
-    municipios.forEach(m => {
-        const opt = document.createElement('option');
-        opt.value = m; opt.textContent = m;
-        select.appendChild(opt);
-    });
-    Object.entries(medianas).forEach(([key, value]) => {
-        const el = document.getElementById(key);
-        if (el) el.value = Number(value).toFixed(2);
-    });
-}
-
-async function predecir() {
-    const form = document.getElementById('predictForm');
-    const data = Object.fromEntries(new FormData(form).entries());
-    const response = await fetch('/api/predict', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
-    const result = await response.json();
-    const riskClass = result.riesgo === 'Alto' ? 'risk-high' : result.riesgo === 'Medio' ? 'risk-mid' : 'risk-low';
-    const box = document.getElementById('resultado');
-    box.style.display = 'block';
-    box.innerHTML = `
-        <span>Resultado del modelo: ${result.metodo}</span>
-        <h3 class="${riskClass}">Riesgo ${result.riesgo} · ${result.confianza}%</h3>
-        <p>${result.recomendacion}</p>
-        <small>${(result.explicaciones || []).join(' · ')}</small>
-    `;
-}
-
-makeLineChart();
-makeRiskChart();
-makeMunicipioChart();
-makeImportanceChart();
-initForm();
-</script>
-</body>
-</html>
-'''
-
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+if __name__ == '__main__':
+    app.run(host='127.0.0.1',port=int(os.environ.get('PORT','5000')),debug=False)

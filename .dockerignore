@@ -1,0 +1,25 @@
+# Allowlist: never transmit the workspace, databases, reports or secrets to build.
+**
+!Dockerfile
+!requirements-web.txt
+!requirements-web-linux.lock
+!app.py
+!wsgi.py
+!gunicorn.conf.py
+!railway_start.py
+!railway_acceptance.py
+!aeris_web/
+!aeris_web/*.py
+!data_ingestion/
+!data_ingestion/__init__.py
+!data_ingestion/catalog.py
+!data_ingestion/visibility.py
+!data/
+!data/openaq_stations.json
+!templates/
+!templates/**
+!static/
+!static/logo.png
+!static/v2/
+!static/v2/**
+**/__pycache__/
