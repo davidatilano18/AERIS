@@ -128,7 +128,8 @@
     finally{if(active===request)$('weatherCharts').setAttribute('aria-busy','false');}
   }
   document.querySelectorAll('[data-domain]').forEach(button=>button.addEventListener('click',()=>{
-    const weather=button.dataset.domain==='weather';$('airWorkspace').hidden=weather;$('weatherWorkspace').hidden=!weather;
+    const weather=button.dataset.domain==='weather';$('airWorkspace').hidden=button.dataset.domain!=='air';$('weatherWorkspace').hidden=!weather;
+    const pollution=document.getElementById('pollutantWorkspace');if(pollution)pollution.hidden=button.dataset.domain!=='pollutants';
     document.querySelectorAll('[data-domain]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));
     if(weather)load();else window.dispatchEvent(new Event('resize'));
   }));
@@ -139,7 +140,7 @@
   (async()=>{
     try{
       const [f,v,s]=await Promise.all([json('/fuentes'),json('/variables'),json('/estaciones')]);
-      sites=s.estaciones.filter(s=>s.variables.some(v=>v.observaciones>0));variables=v.variables;sources=f.fuentes.filter(f=>sites.some(s=>s.fuente_id===f.fuente_id));
+      sites=s.estaciones.filter(s=>['noaa-ghcnh','nasa-power'].includes(s.fuente_id)&&s.variables.some(v=>v.observaciones>0));variables=v.variables;sources=f.fuentes.filter(f=>sites.some(s=>s.fuente_id===f.fuente_id));
       if(!sources.length)throw new Error('Sin series');
       $('weatherSource').replaceChildren(...sources.map(s=>new Option((s.tipo_producto==='observacion'?'Observación · ':'Reanálisis · ')+s.nombre,s.fuente_id)));
       if(sources.some(s=>s.fuente_id==='noaa-ghcnh'))$('weatherSource').value='noaa-ghcnh';siteOptions();
