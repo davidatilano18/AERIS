@@ -318,6 +318,12 @@ createMap();loadOverview().catch(showError);
 
 from aeris_web import register_v2
 register_v2(app, lambda: DB)
+# Capa ambiental: misma base salvo que AERIS_AMBIENTAL_DB_PATH indique otra (solo local;
+# la beta sirve exclusivamente la instantánea verificada).
+from aeris_web.ambiental import register_ambiental
+AMBIENTAL_DB = Path(os.environ['AERIS_AMBIENTAL_DB_PATH']) if (
+    os.environ.get('AERIS_AMBIENTAL_DB_PATH') and app.config['AERIS_ENV'] == 'local') else DB
+register_ambiental(app, lambda: AMBIENTAL_DB)
 
 if __name__ == '__main__':
     app.run(host='127.0.0.1',port=int(os.environ.get('PORT','5000')),debug=False)
