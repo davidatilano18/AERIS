@@ -9,6 +9,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from . import operations as ops
+from . import retention
 from .controlled_run import CriticalConnection, CriticalFailure, require, compare_original
 from .production_preflight import snapshot, sha
 
@@ -79,6 +80,14 @@ def run(db, **kwargs):
             audit['after'] = snapshot(db)
             require(audit['after']['integrity_check'] == ['ok'], 'Final integrity failed')
             audit.update(status=result['status'], synchronization=result)
+            if result['status'] == 'success':
+                # Still under the lock; the verified baseline of this run is always kept.
+                # A retention failure is recorded but never turns a success into a failure.
+                try:
+                    audit['retention'] = retention.prune(db.parent / 'backups', apply=True,
+                                                         protect=[baseline] if baseline else ())
+                except Exception as exc:
+                    audit['retention'] = {'applied': False, 'error_type': type(exc).__name__}
             return audit
     except BaseException as exc:
         # Exception text can contain HTTP/authentication details; do not persist it.

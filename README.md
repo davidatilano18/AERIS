@@ -112,10 +112,12 @@ No sobrescribe `data/sync_pm25_report.json`. Las discrepancias se conservan como
 candidatas en `revisiones_mediciones` y `observaciones_api`, sin actualizar el valor original.
 Un proceso interrumpido se marca `interrupted` al siguiente inicio. Cada sensor se
 confirma en una transacción después de su descarga y control de calidad.
-La retención de respaldos rutinarios (`*_before_sync_*.db`) se aplica con
-`python -B -m scripts.prune_backups`: conserva los 5 más recientes y el último
-de cada día durante 14 días. Sin `--apply` solo lista; los respaldos de hitos
-nunca se eliminan.
+La retención de respaldos rutinarios (`*_before_sync_*.db`) conserva los 5 más
+recientes y el último de cada día durante 14 días; los respaldos de hitos nunca
+se eliminan. `data_ingestion.scheduled_sync` la aplica tras cada sincronización
+exitosa, sin borrar el respaldo de esa ejecución, y la registra en `retention`
+del reporte del programador. Para aplicarla manualmente:
+`python -B -m scripts.prune_backups` (sin `--apply` solo lista).
 
 La calidad se recalcula para cada sensor procesado, incluidos los sucesores
 afectados por relleno de huecos, conservando el historial de flags. Reglas exploratorias `aeris_qc_v2`:

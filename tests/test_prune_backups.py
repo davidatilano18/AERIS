@@ -4,7 +4,8 @@ import unittest
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from scripts.prune_backups import main, plan
+from data_ingestion.retention import plan
+from scripts.prune_backups import main
 
 NOW = datetime(2026, 10, 20, 12, 0)
 
@@ -26,6 +27,13 @@ class PruneBackupsTests(unittest.TestCase):
             self.assertEqual(set(hourly[:5]) | {hourly[13]}, set(kept))
             self.assertIn(old, removed)
             self.assertNotIn(milestone, kept + removed)
+
+    def test_protected_backup_is_never_removed(self):
+        with tempfile.TemporaryDirectory() as folder:
+            old = make(folder, 'aeris_before_sync_old.db', NOW - timedelta(days=20))
+            kept, removed = plan(folder, keep_recent=1, now=NOW, protect=[old])
+            self.assertEqual([old], kept)
+            self.assertEqual([], removed)
 
     def test_dry_run_deletes_nothing_and_apply_deletes(self):
         with tempfile.TemporaryDirectory() as folder:

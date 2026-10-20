@@ -47,3 +47,17 @@ class ScheduledTests(unittest.TestCase):
             self.assertEqual(report['status'], 'success')
             self.assertTrue(report['backup']['verified'])
             self.assertTrue((db.parent/'sync_runtime/scheduler/last_success.json').exists())
+            self.assertTrue(report['retention']['applied'])
+            self.assertIn(Path(report['backup']['path']).name, report['retention']['kept'])
+
+    def test_retention_failure_keeps_success(self):
+        from tests.test_operations import FakeClient, hour
+        from datetime import datetime, timezone
+        with tempfile.TemporaryDirectory() as folder:
+            db = Path(folder) / 'test.db'; self.database(db)
+            with patch.object(ops, 'ACTIVE', (1352676,)), \
+                    patch.object(scheduled.retention, 'prune', side_effect=OSError):
+                report = scheduled.run(db, key='fixture', client=FakeClient([hour()]),
+                    start=datetime(2020,1,1,tzinfo=timezone.utc), end=datetime(2020,1,2,tzinfo=timezone.utc))
+            self.assertEqual(report['status'], 'success')
+            self.assertEqual(report['retention'], {'applied': False, 'error_type': 'OSError'})
