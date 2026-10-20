@@ -1,7 +1,8 @@
 # Publicación en Railway — versión del congreso
 
-Estado al 20/10/2026: **preparado, no publicado.** No se hizo push, no se tocó el servicio, el
-volumen ni las variables. La CLI de Railway no está instalada en este equipo.
+Estado al 20/10/2026 (noche): **preparado, no publicado.** Builds de Railway disponibles de nuevo.
+CLI 5.63.1 enlazada al servicio AERIS; variables de una preparación anterior (corte 003) ya cargadas:
+**hay que actualizarlas al corte 32** (paso 5). Sin push ni despliegue de AERIS 3.3.
 
 ## Qué se publica
 
@@ -9,14 +10,15 @@ volumen ni las variables. La CLI de Railway no está instalada en este equipo.
 |---|---|
 | Repositorio | `https://github.com/davidatilano18/AERIS.git` |
 | Rama a subir | `aeris-demo-integracion` (nueva en el remoto; **no** se fusiona con `main`) |
-| Commit congelado | etiqueta local `aeris-congreso-3.0.1` (AERIS 3.0; la anterior es `aeris-congreso-20261021`) |
+| Commit | cabeza de `aeris-demo-integracion` (AERIS 3.3); la 3.0.1 queda en la etiqueta `aeris-congreso-3.0.1` |
 | Constructor | Dockerfile, forzado por `railway.json` (no Railpack) |
 | Arranque | `python railway_start.py` → verifica el corte, baja a UID 10001, `exec gunicorn` |
 | Datos | un solo archivo, `aeris.db`, en el volumen `aeris-volume` montado en `/dataset` |
-| Corte | `ambiental-demo-003`: 106,668,032 bytes, SHA-256 `b9e8c20f9f6ed3884ecdeadc251ace8bc48fa14bfcacfb84b64569d92de210c6`, creado `2026-10-20T16:40:38+00:00`; 12,759 mediciones PM2.5 y 254,485 observaciones ambientales |
-| Archivo local del corte | `C:\Users\MSI_COREi5\AERIS-Claude\reports\beta_snapshots\ambiental-demo-003\aeris.db` (copia idéntica en `AERIS-Demo-datos\corte-20261020\aeris.db`) |
+| Corte | `corte-32`: 603,181,056 bytes, SHA-256 `e3639e93cc88d21b5c336b4b7c108f2f5f3db569de644d09f934b1743840ac43`, creado `2026-10-20T21:52:07+00:00`; 101,747 mediciones PM2.5 y 1,373,290 observaciones ambientales (archivo OpenAQ 2021–2026, CAMS, meteorología) |
+| Archivo local del corte | `C:\Users\MSI_COREi5\AERIS-Demo-datos\corte-32-20261020\aeris.db` (con `manifest.json` y `demo.json`) |
+| Corte anterior | `ambiental-demo-003` (107 MB, SHA `b9e8c20f…`), ya preparado para 3.0.1; no hace falta borrarlo |
 
-La imagen contiene 89 archivos (con AERIS 3.0: GSAP, fuentes, Aprende y Datos abiertos): web (`app.py`, `wsgi.py`, `aeris_web/`, plantillas, estáticos),
+La imagen contiene 101 archivos (AERIS 3.3): web (`app.py`, `wsgi.py`, `aeris_web/`, plantillas, estáticos),
 `data_ingestion/{__init__,catalog,visibility}.py`, el catálogo público y los archivos de arranque.
 **No** contiene ingesta, sincronizador, tarea programada, `forecasting/`, `models/`, holdout,
 respaldos, `.secrets/` ni bases de datos (`.dockerignore` en lista blanca). En el corte, todas las
@@ -24,7 +26,7 @@ fuentes ambientales están `autorizada=0` y la web no tiene ninguna ruta de escr
 
 ## Verificaciones hechas localmente
 
-- 313 pruebas automáticas (incluye `test_railway_readiness`, `test_web_deployment`, `test_ambiental`).
+- 363 pruebas automáticas, con la red bloqueada (incluye `test_railway_readiness`, `test_web_deployment`, `test_ambiental`).
 - Imagen simulada a partir de los `COPY` del Dockerfile, perfil `AERIS_DEPLOYMENT_PROFILE=railway`
   contra el corte (`scripts/validate_ambiental_railway.py`): 19 rutas en 200, POST → 405,
   host no confiable → 400, hash sin cambios, sin módulos de ingesta/modelos disponibles.
@@ -55,17 +57,17 @@ reales del volumen y espacio libre de `aeris-volume`. El arranque falla cerrado 
    ```powershell
    railway volume list
    railway volume files --volume aeris-volume list /
-   railway volume files --volume aeris-volume upload C:\Users\MSI_COREi5\AERIS-Claude\reports\beta_snapshots\ambiental-demo-003\aeris.db /ambiental-demo-003/aeris.db
-   railway volume files --volume aeris-volume list /ambiental-demo-003
+   railway volume files --volume aeris-volume upload C:\Users\MSI_COREi5\AERIS-Demo-datos\corte-32-20261020\aeris.db /corte-32/aeris.db
+   railway volume files --volume aeris-volume list /corte-32
    ```
    Confirmar antes con `railway volume --help` que la versión instalada ofrece `files`. Espacio:
-   el corte ocupa 107 MB (el corte anterior `demo-20261022` ocupaba 21 MB; no hace falta borrarlo).
+   el corte ocupa 603 MB; la subida tarda más (una anterior se cortó por tiempo: reintentar, no sobrescribir).
 5. **Variables** (Railway proporciona `PORT`):
    ```
    AERIS_ENV=beta
-   AERIS_DB_PATH=/dataset/ambiental-demo-003/aeris.db
-   AERIS_SNAPSHOT_SHA256=b9e8c20f9f6ed3884ecdeadc251ace8bc48fa14bfcacfb84b64569d92de210c6
-   AERIS_SNAPSHOT_CREATED_UTC=2026-10-20T16:40:38+00:00
+   AERIS_DB_PATH=/dataset/corte-32/aeris.db
+   AERIS_SNAPSHOT_SHA256=e3639e93cc88d21b5c336b4b7c108f2f5f3db569de644d09f934b1743840ac43
+   AERIS_SNAPSHOT_CREATED_UTC=2026-10-20T21:52:07+00:00
    AERIS_TRUSTED_HOSTS=localhost,127.0.0.1,healthcheck.railway.app
    AERIS_PROXY_HOPS=0
    AERIS_LOG_LEVEL=INFO
