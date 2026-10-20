@@ -59,10 +59,21 @@ def requiere_revision(contaminante, horas):
     return marcadas
 
 
+def decimal(valor):
+    # repr() da la forma decimal más corta del dato recibido (25.455, no 25.45499999...).
+    return valor if isinstance(valor, Decimal) else Decimal(repr(valor))
+
+
+def promedio(valores):
+    """Promedio en aritmética decimal exacta: en binario, 484.5 / 19 sale 25.4999… y cambia la categoría."""
+    valores = list(valores)
+    return sum(map(decimal, valores)) / len(valores)
+
+
 def redondear(valor, decimales):
     """Redondeo de la NOM-172 («mitad hacia arriba»), no el redondeo bancario de Python."""
     paso = Decimal(1).scaleb(-decimales)
-    return float(Decimal(repr(valor)).quantize(paso, rounding=ROUND_HALF_UP))
+    return float(decimal(valor).quantize(paso, rounding=ROUND_HALF_UP))
 
 
 def banda(contaminante, valor):
@@ -80,7 +91,7 @@ def concentracion_diaria(contaminante, horas):
         return None
     metodo = CONTAMINANTES[contaminante][4]
     if metodo == 'promedio 24 h':
-        return sum(horas.values()) / len(horas)
+        return promedio(horas.values())
     if metodo == 'máximo horario':
         return max(horas.values())
     return None  # CO se calcula aparte (necesita horas del día anterior).
@@ -94,12 +105,12 @@ def maximo_movil_8h(serie, dia):
         fin = inicio + timedelta(hours=h)
         ventana = [serie[t] for t in (fin - timedelta(hours=k) for k in range(8)) if t in serie]
         if len(ventana) >= 6:
-            promedios.append(sum(ventana) / len(ventana))
+            promedios.append(promedio(ventana))
     return max(promedios) if promedios else None
 
 
-def leer_horas(path):
-    """{(estacion_id, contaminante): {datetime local: valor}} con horas válidas solamente."""
+def leer_horas(path, revisar=True):
+    """{(estacion_id, contaminante): {datetime local: valor}}; revisar=False omite gases-v1 (sensibilidad)."""
     series = defaultdict(dict)
     nombres = {}
     revision = defaultdict(int)  # horas de gases/PM10 excluidas por gases-v1, por (estación, contaminante)
@@ -119,7 +130,7 @@ def leer_horas(path):
                    JOIN amb_estaciones e USING(estacion_id) WHERE e.fuente_id='openaq-archivo'
                    AND o.marca_origen=0 AND o.fuera_de_rango=0"""):
             series[(eid, variable)][datetime.fromisoformat(fecha.replace('Z', '+00:00')).astimezone(ZONA)] = valor
-        for clave in list(series):
+        for clave in list(series) if revisar else ():
             for t in requiere_revision(clave[1], series[clave]):
                 del series[clave][t]
                 revision[clave] += 1
@@ -136,9 +147,9 @@ def leer_horas(path):
     return series, nombres, revision
 
 
-def dias(path):
+def dias(path, revisar=True):
     """Un registro por estación y día con la categoría de cada contaminante y la del día."""
-    series, nombres, _ = leer_horas(path)
+    series, nombres, _ = leer_horas(path, revisar)
     por_dia = defaultdict(lambda: defaultdict(dict))
     for (eid, contaminante), horas in series.items():
         for t, v in horas.items():
@@ -219,6 +230,15 @@ def _resumir(path):
                 e['determinantes'][c] += 1
     n = len(registros)
     no_buenos = n - total['Buena']
+    # Sensibilidad (revisión de Codex, hallazgo B): la regla gases-v1 impide por construcción ver
+    # «Extremadamente mala» en gases y PM10. Se publica qué cambiaría sin ella.
+    con = {(r['estacion_id'], r['dia']): r['categoria'] for r in registros}
+    sin = {(r['estacion_id'], r['dia']): r['categoria'] for r in dias(path, revisar=False) if r['dia'].year >= DESDE_ANIO}
+    graves = ('Muy mala', 'Extremadamente mala')
+    sensibilidad = {'dias_que_cambian': sum(con.get(k) != v for k, v in sin.items()),
+                    'graves_con': sum(v in graves for v in con.values()),
+                    'graves_sin': sum(v in graves for v in sin.values()),
+                    'dias_sin': len(sin)}
     filas = []
     for eid, e in sorted(estaciones.items(), key=lambda x: x[1]['nombre']):
         dias_e = sum(e['conteo'].values())
@@ -237,6 +257,6 @@ def _resumir(path):
         'no_buenos': no_buenos, 'filas': filas,
         'anios': [{'anio': a, 'dias': sum(v.values()), 'conteo': v,
                    'porcentajes': {b: 100 * x / sum(v.values()) for b, x in v.items()}} for a, v in sorted(anios.items())],
-        'horas_revision': sum(revision.values()), 'revision': REVISION_GASES,
+        'horas_revision': sum(revision.values()), 'revision': REVISION_GASES, 'sensibilidad': sensibilidad,
         'horas_gases': sum(len(v) for (e, c), v in series.items() if c != 'pm25'),
     }

@@ -38,6 +38,11 @@ class CalculoDiarioTests(unittest.TestCase):
         inicio = datetime(dia.year, dia.month, dia.day, tzinfo=ZONA)
         return {inicio + timedelta(hours=i): v for i, v in enumerate(valores) if v is not None}
 
+    def test_promedio_decimal_exacto_antes_de_redondear(self):
+        # Caso de la revisión de Codex: en binario 484.5/19 da 25.4999… (Aceptable); exacto es 25.5 -> 26 (Mala).
+        base = concentracion_diaria('pm25', self.horas([25.455] * 18 + [26.31]))
+        self.assertEqual(banda('pm25', base), ('Mala', 26.0))
+
     def test_maximo_horario_exige_18_horas(self):
         self.assertEqual(concentracion_diaria('o3', self.horas([0.03] * 17 + [0.09])), 0.09)
         self.assertIsNone(concentracion_diaria('o3', self.horas([0.03] * 17)))

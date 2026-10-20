@@ -20,6 +20,8 @@ from zoneinfo import ZoneInfo
 from data_ingestion.catalog import read_catalog
 from data_ingestion.visibility import connect_readonly
 
+from .indice import promedio, redondear
+
 ZONA = ZoneInfo('America/Mexico_City')
 OMS_24H = 15.0
 HORAS_MINIMAS = 18
@@ -33,7 +35,6 @@ LIMITE_ACEPTABLE_2024_2025 = 33
 
 def banda(valor):
     """Clasifica tras redondear a entero «mitad hacia arriba», como exige la NOM-172 para PM2.5."""
-    from .indice import redondear
     valor = redondear(valor, 0)
     for nombre, tope in zip(BANDAS, LIMITES):
         if valor <= tope:
@@ -72,9 +73,10 @@ def registros_diarios(path, now=None):
     catalogo, dias, _ = agrupar(path, now)
     for (fuente, sensor, dia), d in sorted(dias.items(), key=lambda x: (x[0][0], x[0][1], x[0][2])):
         n = len(d['limpias'])
-        media = sum(d['limpias']) / n if n >= HORAS_MINIMAS else None
-        if media is not None:
-            estado = banda(media)
+        exacta = promedio(d['limpias']) if n >= HORAS_MINIMAS else None
+        media = float(exacta) if exacta is not None else None
+        if exacta is not None:
+            estado = banda(exacta)
         elif d['total'] >= HORAS_MINIMAS:
             estado = 'En revisión'
         else:
@@ -82,7 +84,7 @@ def registros_diarios(path, now=None):
         yield {'fuente': FUENTES[fuente], 'sensor_id': sensor, 'estacion': catalogo[sensor]['name'],
                'municipio': catalogo[sensor]['municipality'], 'fecha_local': dia.isoformat(),
                'horas_con_dato': d['total'], 'horas_validas': n, 'promedio_24h_ug_m3': media,
-               'clasificacion_nom172': estado, 'supera_guia_oms': (media > OMS_24H) if media is not None else None}
+               'clasificacion_nom172': estado, 'supera_guia_oms': (exacta > OMS_24H) if exacta is not None else None}
 
 
 def read_estado(path, now=None):
@@ -97,13 +99,14 @@ def read_estado(path, now=None):
             'primero': dia, 'ultimo': dia, 'ultimo_valido': None, 'medias': []})
         s['primero'], s['ultimo'] = min(s['primero'], dia), max(s['ultimo'], dia)
         if len(d['limpias']) >= HORAS_MINIMAS:
-            media = sum(d['limpias']) / len(d['limpias'])
-            s['conteo'][banda(media)] += 1
+            exacta = promedio(d['limpias'])
+            media = float(exacta)
+            s['conteo'][banda(exacta)] += 1
             s['validos'] += 1
-            s['oms'] += media > OMS_24H
+            s['oms'] += exacta > OMS_24H
             s['medias'].append(media)
             s['ultimo_valido'] = max(filter(None, (s['ultimo_valido'], dia)))
-            picos.append({'dia': dia, 'media': media, 'banda': banda(media), 'nombre': s['nombre'],
+            picos.append({'dia': dia, 'media': media, 'banda': banda(exacta), 'nombre': s['nombre'],
                           'fuente': FUENTES[fuente], 'horas': len(d['limpias'])})
         elif d['total'] >= HORAS_MINIMAS:
             s['revision'] += 1  # Habría sido un día completo; las horas marcadas lo dejan sin promedio.

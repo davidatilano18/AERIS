@@ -17,7 +17,7 @@ from pathlib import Path
 
 from data_ingestion.visibility import connect_readonly
 
-from .indice import HORAS_MINIMAS, ZONA, banda, leer_horas
+from .indice import HORAS_MINIMAS, ZONA, banda, leer_horas, promedio
 
 CERCANA = 'openaq:480392'  # Epigmenio González, la estación con PM2.5 más cercana (≈ 8 km).
 _CACHE = {}
@@ -41,8 +41,8 @@ def correlacion(a, b):
 
 
 def validar(pares):
-    """pares: [(medido, modelo)] de promedios diarios."""
-    medido, modelo = [p[0] for p in pares], [p[1] for p in pares]
+    """pares: [(medido, modelo)] de promedios diarios (exactos; se clasifican antes de pasar a float)."""
+    medido, modelo = [float(p[0]) for p in pares], [float(p[1]) for p in pares]
     categorias = [(banda('pm25', m)[0], banda('pm25', c)[0]) for m, c in pares]
     no_buenos = [c for c in categorias if c[0] != 'Buena']
     return {'dias': len(pares), 'medido': sum(medido) / len(pares), 'modelo': sum(modelo) / len(pares),
@@ -55,7 +55,7 @@ def validar(pares):
 def mensual(dias):
     meses = defaultdict(list)
     for d, v in dias.items():
-        meses[(d.year, d.month)].append(v)
+        meses[(d.year, d.month)].append(float(v))
     return {f'{a}-{m:02d}': sum(v) / len(v) for (a, m), v in sorted(meses.items()) if len(v) >= 15}
 
 
@@ -81,14 +81,14 @@ def _resumir(path):
         modelo = diarios_modelo(conn)
     if not modelo.get('cams:marques'):
         return None
-    modelo = {e: {d: sum(v) / len(v) for d, v in dias.items() if len(v) >= HORAS_MINIMAS} for e, dias in modelo.items()}
+    modelo = {e: {d: promedio(v) for d, v in dias.items() if len(v) >= HORAS_MINIMAS} for e, dias in modelo.items()}
     series, _, _ = leer_horas(path)
     medidos = defaultdict(lambda: defaultdict(list))
     for (eid, c), horas in series.items():
         if c == 'pm25':
             for t, v in horas.items():
                 medidos[eid][t.date()].append(v)
-    medidos = {e: {d: sum(v) / len(v) for d, v in dias.items() if len(v) >= HORAS_MINIMAS} for e, dias in medidos.items()}
+    medidos = {e: {d: promedio(v) for d, v in dias.items() if len(v) >= HORAS_MINIMAS} for e, dias in medidos.items()}
     marques = modelo['cams:marques']
     pares_todos, pares_celda, estaciones = [], [], []
     for eid, dias in sorted(medidos.items()):
@@ -104,7 +104,7 @@ def _resumir(path):
     sobre_guia = sum(v > 15 for v in marques.values())
     return {
         'desde': min(marques), 'hasta': max(marques), 'dias': len(marques),
-        'media': sum(marques.values()) / len(marques), 'sobre_guia': sobre_guia,
+        'media': float(promedio(marques.values())), 'sobre_guia': sobre_guia,
         'validacion': validar(pares_todos), 'estaciones': estaciones,
         'celda': [e['nombre'] for e in estaciones if e['misma_celda']],
         'celda_texto': lista([e['nombre'] for e in estaciones if e['misma_celda']]),
