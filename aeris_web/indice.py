@@ -11,6 +11,11 @@ NOM-172-SEMARNAT-2023 (DOF 25/01/2024):
 
 PM2.5 sale de la tabla `mediciones` (horas con revisión pendiente excluidas); los demás contaminantes de
 la capa ambiental (fuente openaq-archivo; horas marcadas o fuera de rango excluidas). Cada estación por separado.
+
+Revisión automática de gases y PM10 (AERIS, versión gases-v1), análoga a la de PM2.5 (>100 µg/m³ o salto
+de ≥100 en una hora): una hora requiere revisión si supera el inicio de «Extremadamente mala» o si cambia
+más que el tope de «Mala» respecto de la hora inmediata anterior. Solo mira hacia atrás, no interpola y no
+borra nada: la hora se excluye del cálculo y se cuenta. Una marca invita a revisar; no confirma un error.
 """
 import json
 import math
@@ -35,6 +40,23 @@ CONTAMINANTES = {
     'so2': ('Dióxido de azufre (SO₂)', 'ppm', 3, (0.035, 0.075, 0.185, 0.304), 'máximo horario'),
     'co': ('Monóxido de carbono (CO)', 'ppm', 2, (5.00, 9.00, 12.00, 16.00), 'máximo móvil 8 h'),
 }
+
+
+REVISION_GASES = 'gases-v1'
+
+
+def requiere_revision(contaminante, horas):
+    """Instantes marcados por la revisión gases-v1 (horas: {datetime: valor})."""
+    topes = CONTAMINANTES[contaminante][3]
+    extremo, salto = topes[3], topes[2]
+    marcadas, previo = set(), None
+    for t in sorted(horas):
+        v = horas[t]
+        adyacente = previo is not None and t - previo[0] == timedelta(hours=1)
+        if v > extremo or (adyacente and abs(v - previo[1]) > salto):
+            marcadas.add(t)
+        previo = (t, v)
+    return marcadas
 
 
 def redondear(valor, decimales):
@@ -80,10 +102,11 @@ def leer_horas(path):
     """{(estacion_id, contaminante): {datetime local: valor}} con horas válidas solamente."""
     series = defaultdict(dict)
     nombres = {}
+    revision = defaultdict(int)  # horas de gases/PM10 excluidas por gases-v1, por (estación, contaminante)
     with closing(connect_readonly(Path(path))) as conn:
         tablas = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
         if 'amb_estaciones' not in tablas:
-            return series, nombres
+            return series, nombres, revision
         sensores = {}
         for eid, nombre, municipio, meta in conn.execute(
                 "SELECT estacion_id,nombre,municipio,metadatos_json FROM amb_estaciones WHERE fuente_id='openaq-archivo'"):
@@ -96,6 +119,10 @@ def leer_horas(path):
                    JOIN amb_estaciones e USING(estacion_id) WHERE e.fuente_id='openaq-archivo'
                    AND o.marca_origen=0 AND o.fuera_de_rango=0"""):
             series[(eid, variable)][datetime.fromisoformat(fecha.replace('Z', '+00:00')).astimezone(ZONA)] = valor
+        for clave in list(series):
+            for t in requiere_revision(clave[1], series[clave]):
+                del series[clave][t]
+                revision[clave] += 1
         calidad = 'calidad_mediciones' in tablas
         union = 'LEFT JOIN calidad_mediciones q USING(fuente,sensor_id,fecha_utc,contaminante)' if calidad else ''
         filtro = 'AND COALESCE(q.requiere_revision,0)=0' if calidad else ''
@@ -106,12 +133,12 @@ def leer_horas(path):
                 list(sensores)):
             if math.isfinite(valor):
                 series[(sensores[sensor], 'pm25')][datetime.fromisoformat(fecha.replace('Z', '+00:00')).astimezone(ZONA)] = valor
-    return series, nombres
+    return series, nombres, revision
 
 
 def dias(path):
     """Un registro por estación y día con la categoría de cada contaminante y la del día."""
-    series, nombres = leer_horas(path)
+    series, nombres, _ = leer_horas(path)
     por_dia = defaultdict(lambda: defaultdict(dict))
     for (eid, contaminante), horas in series.items():
         for t, v in horas.items():
@@ -151,3 +178,65 @@ def resumen_por_anio(registros):
             for c in r['determinantes']:
                 t['determinantes'][c] += 1
     return tabla
+
+
+DESDE_ANIO = 2023  # 2021 solo tiene unas dos semanas por estación en el archivo; se omite del resumen.
+_CACHE = {}
+
+
+def read_indice(path):
+    """Resumen para la portada; se calcula una vez por versión del archivo (el corte es de solo lectura)."""
+    path = Path(path)
+    estado = path.stat()
+    clave = (str(path.resolve()), estado.st_size, estado.st_mtime_ns)
+    if clave not in _CACHE:
+        _CACHE.clear()
+        _CACHE[clave] = _resumir(path)
+    return _CACHE[clave]
+
+
+def _resumir(path):
+    series, nombres, revision = leer_horas(path)
+    registros = [r for r in dias(path) if r['dia'].year >= DESDE_ANIO]
+    if not registros:
+        return None
+    total = dict.fromkeys(BANDAS, 0)
+    determinantes = defaultdict(int)
+    estaciones, anios = {}, {}
+    for r in registros:
+        total[r['categoria']] += 1
+        e = estaciones.setdefault(r['estacion_id'], {'nombre': r['nombre'], 'municipio': r['municipio'],
+                                                     'conteo': dict.fromkeys(BANDAS, 0), 'determinantes': defaultdict(int),
+                                                     'contaminantes': set(), 'primero': r['dia'], 'ultimo': r['dia']})
+        e['conteo'][r['categoria']] += 1
+        e['contaminantes'] |= set(r['contaminantes'])
+        e['primero'], e['ultimo'] = min(e['primero'], r['dia']), max(e['ultimo'], r['dia'])
+        a = anios.setdefault(r['dia'].year, dict.fromkeys(BANDAS, 0))
+        a[r['categoria']] += 1
+        if r['categoria'] != 'Buena':
+            for c in r['determinantes']:
+                determinantes[c] += 1
+                e['determinantes'][c] += 1
+    n = len(registros)
+    no_buenos = n - total['Buena']
+    filas = []
+    for eid, e in sorted(estaciones.items(), key=lambda x: x[1]['nombre']):
+        dias_e = sum(e['conteo'].values())
+        principal = max(e['determinantes'].items(), key=lambda x: x[1], default=(None, 0))
+        filas.append({**e, 'estacion_id': eid, 'dias': dias_e,
+                      'porcentajes': {b: 100 * v / dias_e for b, v in e['conteo'].items()},
+                      'principal': CONTAMINANTES[principal[0]][0] if principal[0] else None,
+                      'contaminantes': [CONTAMINANTES[c][0] for c in CONTAMINANTES if c in e['contaminantes']],
+                      'sin': [CONTAMINANTES[c][0] for c in CONTAMINANTES if c not in e['contaminantes']]})
+    return {
+        'dias': n, 'estaciones': len(estaciones), 'desde': min(r['dia'] for r in registros),
+        'hasta': max(r['dia'] for r in registros), 'conteo': total,
+        'porcentajes': {b: 100 * v / n for b, v in total.items()},
+        'determinantes': [{'id': c, 'nombre': CONTAMINANTES[c][0], 'dias': v, 'pct': 100 * v / no_buenos}
+                          for c, v in sorted(determinantes.items(), key=lambda x: -x[1])],
+        'no_buenos': no_buenos, 'filas': filas,
+        'anios': [{'anio': a, 'dias': sum(v.values()), 'conteo': v,
+                   'porcentajes': {b: 100 * x / sum(v.values()) for b, x in v.items()}} for a, v in sorted(anios.items())],
+        'horas_revision': sum(revision.values()), 'revision': REVISION_GASES,
+        'horas_gases': sum(len(v) for (e, c), v in series.items() if c != 'pm25'),
+    }

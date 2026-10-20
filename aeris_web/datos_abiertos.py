@@ -22,6 +22,10 @@ blueprint = Blueprint('datos_abiertos', __name__)
 ZONA = ZoneInfo('America/Mexico_City')
 FUENTES_PM25 = {'OpenAQ': 'OpenAQ API', 'OpenAQ-Archive': 'OpenAQ Archive'}
 
+_INDICE = [('pm25', 'PM2.5', 'promedio de 24 h, µg/m³'), ('pm10', 'PM10', 'promedio de 24 h, µg/m³'),
+           ('o3', 'ozono', 'máximo horario, ppm'), ('no2', 'NO₂', 'máximo horario, ppm'),
+           ('so2', 'SO₂', 'máximo horario, ppm'), ('co', 'CO', 'máximo del promedio móvil de 8 h, ppm')]
+
 CONJUNTOS = {
     'pm25-horario': {
         'titulo': 'PM2.5 horario', 'tipo': 'Observación',
@@ -56,6 +60,31 @@ CONJUNTOS = {
             ('supera_guia_oms', '1 si el promedio supera 15 µg/m³ (guía OMS 2021, 24 h)'),
         ],
     },
+    'indice-diario': {
+        'titulo': 'Índice AIRE Y SALUD diario · seis contaminantes', 'tipo': 'Derivado de observaciones',
+        'descripcion': 'Por estación y día local: la concentración diaria y la categoría de PM2.5, PM10, ozono, NO₂, SO₂ y CO, '
+                       'y la categoría del día (el contaminante que peor esté).',
+        'origen': 'Calculado por AERIS a partir del archivo público de OpenAQ (red estatal vía SINAICA)',
+        'licencia': 'Mismas condiciones que los datos horarios. Método: NOM-172-SEMARNAT-2023, Tablas 2 a 9; '
+                    '≥ 18 horas válidas por contaminante; revisión automática gases-v1 y de PM2.5 aplicadas.',
+        'columnas': [
+            ('estacion_id', 'Identificador AERIS (openaq:<ubicación>)'), ('estacion', 'Nombre'), ('municipio', 'Municipio'),
+            ('fecha_local', 'Día en hora de Querétaro (AAAA-MM-DD)'),
+        ] + [c for k, n, m in _INDICE for c in (
+            (f'{k}_valor', f'{n}: {m}, redondeado según la norma; vacío sin 18 horas válidas'),
+            (f'{k}_categoria', f'Categoría de {n}'), (f'{k}_horas', f'Horas válidas de {n} ese día'))] + [
+            ('categoria_dia', 'La peor categoría entre los contaminantes con dato'),
+            ('determinantes', 'Contaminantes con esa peor categoría, separados por «;»'),
+        ],
+    },
+    'contaminantes-horario': {
+        'titulo': 'PM10, ozono, NO₂, SO₂ y CO horarios', 'tipo': 'Observación',
+        'descripcion': 'Cada valor horario del archivo público de OpenAQ para las estaciones de la red, con su unidad original. '
+                       'El PM2.5 está en el conjunto «PM2.5 horario».',
+        'origen': 'OpenAQ Archive, red de monitoreo de Querétaro / SINAICA',
+        'licencia': 'Términos de SINAICA (atribución requerida) y de OpenAQ. Cita: «Datos de OpenAQ, red SINAICA; procesados por AERIS».',
+        'fuente_id': 'openaq-archivo',
+    },
     'meteorologia-mmqt': {
         'titulo': 'Meteorología observada · Aeropuerto MMQT', 'tipo': 'Observación',
         'descripcion': 'Reportes METAR del Aeropuerto Intercontinental de Querétaro (El Marqués): temperatura, humedad, viento, presión y visibilidad.',
@@ -78,11 +107,11 @@ COLUMNAS_AMBIENTALES = [
     ('variable', 'Identificador de la variable'), ('unidad', 'Unidad canónica'),
     ('fecha_utc', 'Instante ISO 8601 en UTC'), ('fecha_local', 'Hora de Querétaro con desfase'),
     ('valor', 'Valor en la unidad canónica'), ('valor_original', 'Texto original de la fuente'),
-    ('unidad_original', 'Unidad original'), ('periodo', 'instantaneo (METAR) o PT1H (valor horario del modelo)'),
-    ('tipo_reporte', 'FM-15, FM-16 o POWER-horario'), ('calidad_origen', 'Código de calidad del proveedor; vacío = sin marca'),
+    ('unidad_original', 'Unidad original'), ('periodo', 'instantaneo (METAR) o PT1H (valor horario)'),
+    ('tipo_reporte', 'FM-15, FM-16, POWER-horario u OpenAQ-Archive'), ('calidad_origen', 'Código de calidad del proveedor; vacío = sin marca'),
     ('marca_origen', '1 si el proveedor lo marcó'), ('fuera_de_rango', '1 si sale del rango físico de AERIS'),
 ]
-for _clave in ('meteorologia-mmqt', 'reanalisis-nasa-power'):
+for _clave in ('meteorologia-mmqt', 'reanalisis-nasa-power', 'contaminantes-horario'):
     CONJUNTOS[_clave]['columnas'] = COLUMNAS_AMBIENTALES
 
 
@@ -145,6 +174,16 @@ def filas_diarias(path):
                '' if r['supera_guia_oms'] is None else int(r['supera_guia_oms'])]
 
 
+def filas_indice(path):
+    from .indice import CONTAMINANTES, dias
+    for r in dias(path):
+        fila = [r['estacion_id'], r.get('nombre', ''), r.get('municipio', ''), r['dia'].isoformat()]
+        for c in CONTAMINANTES:
+            d = r['contaminantes'].get(c)
+            fila += [numero(d['valor']), d['categoria'], d['horas']] if d else ['', '', '']
+        yield fila + [r['categoria'], ';'.join(r['determinantes'])]
+
+
 def filas_ambientales(path, fuente_id):
     with closing(connect_readonly(path)) as conn:
         cursor = conn.execute('''SELECT o.estacion_id,e.nombre,e.municipio,f.tipo_producto,e.latitud,e.longitud,o.variable_id,o.unidad,
@@ -180,13 +219,14 @@ def pagina():
         rango = conn.execute("SELECT MIN(fecha_utc),MAX(fecha_utc) FROM mediciones WHERE contaminante='pm25'").fetchone()
     conteos['pm25-diario'] = None
     hay_amb = ambiental.is_file() and tiene_tabla(ambiental, 'amb_observaciones')
-    for clave in ('meteorologia-mmqt', 'reanalisis-nasa-power'):
+    for clave in ('meteorologia-mmqt', 'reanalisis-nasa-power', 'contaminantes-horario'):
         disponibles[clave] = hay_amb
         if hay_amb:
             with closing(connect_readonly(ambiental)) as conn:
                 conteos[clave] = conn.execute('''SELECT COUNT(*) FROM amb_observaciones o JOIN amb_estaciones e USING(estacion_id)
                     WHERE e.fuente_id=?''', (CONJUNTOS[clave]['fuente_id'],)).fetchone()[0]
             disponibles[clave] = bool(conteos[clave])
+    disponibles['indice-diario'] = bool(conteos.get('contaminantes-horario'))
     return render_template('v2/datos_abiertos.html', conjuntos=CONJUNTOS, disponibles=disponibles, conteos=conteos,
                            rango=rango, generado=datetime.now(timezone.utc))
 
@@ -201,6 +241,10 @@ def descargar(nombre):
         filas = filas_pm25(base())
     elif nombre == 'pm25-diario':
         filas = filas_diarias(base())
+    elif nombre == 'indice-diario':
+        if not tiene_tabla(base(), 'amb_observaciones'):
+            abort(404)
+        filas = filas_indice(base())
     else:
         path = ambiental_base()
         if not path.is_file() or not tiene_tabla(path, 'amb_observaciones'):

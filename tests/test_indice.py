@@ -3,7 +3,7 @@ import unittest
 from datetime import date, datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
-from aeris_web.indice import BANDAS, banda, concentracion_diaria, maximo_movil_8h, redondear
+from aeris_web.indice import BANDAS, banda, concentracion_diaria, maximo_movil_8h, redondear, requiere_revision
 from data_ingestion.ambiental.openaq_archivo import interpretar
 
 ZONA = ZoneInfo('America/Mexico_City')
@@ -51,6 +51,15 @@ class CalculoDiarioTests(unittest.TestCase):
         # Con solo 5 horas en la ventana no hay promedio móvil.
         escasa = self.horas([None, None, None, 2.0, 2.0, 2.0, 2.0, 2.0])
         self.assertIsNone(maximo_movil_8h(escasa, date(2026, 5, 1)))
+
+    def test_revision_gases_marca_extremos_y_saltos_sin_mirar_adelante(self):
+        horas = self.horas([0.02, 0.03, 0.20, 0.03, 0.04, 0.18])
+        marcadas = sorted(t.hour for t in requiere_revision('o3', horas))
+        # 0.20 (salto de 0.17 > 0.135), 0.03 tras 0.20 (salto) y 0.18 (> 0.175: extremo).
+        self.assertEqual(marcadas, [2, 3, 5])
+        # Un hueco de más de una hora no cuenta como salto.
+        hueco = self.horas([1.0, None, None, 13.5])
+        self.assertEqual(requiere_revision('co', hueco), set())
 
     def test_bandas_en_orden(self):
         self.assertEqual(BANDAS[0], 'Buena')

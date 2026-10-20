@@ -35,7 +35,7 @@
     {% for clave, c in conjuntos.items() %}
     {% set tono = 'modelo' if 'Modelo' in c.tipo else ('derivado' if 'Derivado' in c.tipo else 'observacion') %}
     <article class="conjunto {{ tono }}" id="{{ clave }}">
-      <div class="conjunto-cabeza"><span class="conjunto-tipo">{{ c.tipo }}</span>{% if conteos.get(clave) %}<span class="conjunto-filas"><strong>{{ '{:,}'.format(conteos[clave]) }}</strong> filas</span>{% elif clave == 'pm25-diario' %}<span class="conjunto-filas">Un registro por estación y día</span>{% endif %}</div>
+      <div class="conjunto-cabeza"><span class="conjunto-tipo">{{ c.tipo }}</span>{% if conteos.get(clave) %}<span class="conjunto-filas"><strong>{{ '{:,}'.format(conteos[clave]) }}</strong> filas</span>{% elif clave in ('pm25-diario', 'indice-diario') %}<span class="conjunto-filas">Un registro por estación y día</span>{% endif %}</div>
       <h2>{{ c.titulo }}</h2>
       <p class="conjunto-desc">{{ c.descripcion }}</p>
       <dl class="conjunto-meta"><div><dt>Origen</dt><dd>{{ c.origen }}</dd></div><div><dt>Licencia y cita</dt><dd>{{ c.licencia }}</dd></div></dl>

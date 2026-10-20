@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="{{ url_for('static',filename='v2/vendor/leaflet/leaflet.css') }}">
   <link rel="stylesheet" href="{{ url_for('static',filename='v2/css/home.css') }}">
   <link rel="stylesheet" href="{{ url_for('static',filename='v2/css/home_method.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static',filename='v2/css/indice.css') }}">
 {% if inmersiva %}  <link rel="stylesheet" href="{{ url_for('static',filename='v2/css/fuentes.css') }}">
   <link rel="stylesheet" href="{{ url_for('static',filename='v2/css/inmersivo.css') }}">
   <script>document.documentElement.classList.remove('escena-sin-js')</script>
@@ -117,6 +118,7 @@
       <ol class="estado-top">{% for d in estado.picos %}<li><span class="dot {{ {'Buena':'b-buena','Aceptable':'b-aceptable','Mala':'b-mala','Muy mala':'b-muymala','Extremadamente mala':'b-extrema'}[d.banda] }}"></span><span><strong>{{ '%.1f'|format(d.media) }} µg/m³</strong> · {{ d.banda }}</span><small>{{ short_date(d.dia) }} · {{ d.nombre }} · {{ d.fuente }}</small></li>{% endfor %}</ol>
     </article>
   </div>
+  {% include 'v2/home_indice.html' %}
   <script id="estadoPerfiles" type="application/json">{{ estado.perfiles|tojson }}</script>
 </section>
 {% endif %}

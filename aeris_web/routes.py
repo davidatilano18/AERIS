@@ -64,8 +64,13 @@ def render_home(template, **extra):
             estado = read_estado(current_app.extensions['aeris_v2_database']())
         except (sqlite3.Error, RuntimeError, KeyError, ValueError):
             estado = None  # El resumen es complementario: nunca impide mostrar el resto.
+        try:
+            from .indice import read_indice
+            indice = read_indice(current_app.extensions['aeris_v2_database']())
+        except (sqlite3.Error, OSError, RuntimeError, KeyError, ValueError):
+            indice = None  # Igual: sin capa de contaminantes la portada sigue con PM2.5.
         return render_template(template, overview=overview, local_date=local_date, unavailable=False,
-                               estado=estado, short_date=short_date, **extra)
+                               estado=estado, indice=indice, short_date=short_date, **extra)
     except (sqlite3.Error, FileNotFoundError, RuntimeError, KeyError, ValueError):
         return render_template(template, overview=None, local_date=local_date, unavailable=True,
                                estado=None, short_date=short_date, **extra), 503
