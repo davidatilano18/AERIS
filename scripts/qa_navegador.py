@@ -118,6 +118,9 @@ def main(argv=None):
             ancho, alto, movil = ANCHOS[nombre]
             nav.cmd('Emulation.setDeviceMetricsOverride', {'width': ancho, 'height': alto, 'deviceScaleFactor': 1, 'mobile': movil})
             for ruta in args.ruta:
+                # Página en blanco entre rutas: un cambio de solo #hash también recarga.
+                nav.cmd('Page.navigate', {'url': 'about:blank'})
+                nav.drenar(.3)
                 nav.eventos.clear()
                 nav.cmd('Page.navigate', {'url': args.base + ruta})
                 nav.drenar(args.espera)
