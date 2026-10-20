@@ -1,0 +1,2 @@
+# Optional browser verification, using the existing Chrome installation.
+websocket-client==1.9.0

@@ -1,0 +1,34 @@
+services:
+  web:
+    build: .
+    image: aeris-web:3.1
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      AERIS_ENV: beta
+      AERIS_DB_PATH: /dataset/aeris.db
+      AERIS_DATASET_MANIFEST: /dataset/manifest.json
+      AERIS_TRUSTED_HOSTS: localhost,127.0.0.1
+      AERIS_PROXY_HOPS: "0"
+      AERIS_LOG_LEVEL: INFO
+    volumes:
+      - type: bind
+        source: ${AERIS_BETA_DATA_DIR:?Set an absolute path to the prepared beta snapshot directory}
+        target: /dataset
+        read_only: true
+        bind:
+          create_host_path: false
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 512m
+    cpus: 1.0
+    pids_limit: 64
+    restart: "no"
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "3"
