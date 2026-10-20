@@ -91,7 +91,8 @@ locales (sin CDN), Gunicorn en Docker para Railway. La web nunca descarga, migra
 
 ## 5. Railway
 
-Estado: **preparado, no desplegado** (sin push ni servicio creado).
+Estado: **preparado, no desplegado** (sin push ni cambios en el servicio).
+Procedimiento exacto paso a paso: [aeris_railway_publicacion_congreso.md](aeris_railway_publicacion_congreso.md).
 
 - Código: rama `aeris-demo-integracion`. Dockerfile, `requirements-web-linux.lock`, `railway.json`
   y `railway_start.py` sin cambios; los archivos nuevos (`aeris_web/ambiental.py`, plantillas, JS y
