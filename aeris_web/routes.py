@@ -7,6 +7,36 @@ from .comparisons import read_comparison
 blueprint=Blueprint('dashboard_v2',__name__)
 
 
+@blueprint.get('/inicio')
+def home():
+    return render_home('v2/home.html')
+
+
+@blueprint.get('/inicio/anterior')
+def home_previous():
+    return render_home('v2/home_v1.html')
+
+
+@blueprint.get('/inicio/explorar')
+def workspace():
+    return render_home('v2/workspace.html')
+
+
+def render_home(template):
+    from .home import read_home
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    def local_date(value):
+        point = datetime.fromisoformat(value.replace('Z','+00:00')).astimezone(ZoneInfo('America/Mexico_City'))
+        offset = point.strftime('%z')
+        return point.strftime('%d/%m/%Y '+chr(183)+' %H:%M')+' (UTC'+offset[:3]+':'+offset[3:]+')'
+    try:
+        overview = read_home(current_app.extensions['aeris_v2_database']())
+        return render_template(template, overview=overview, local_date=local_date, unavailable=False)
+    except (sqlite3.Error, FileNotFoundError, RuntimeError, KeyError, ValueError):
+        return render_template(template, overview=None, local_date=local_date, unavailable=True), 503
+
+
 @blueprint.get('/v2')
 @blueprint.get('/v2/')
 def index(): return render_template('v2/public.html')
