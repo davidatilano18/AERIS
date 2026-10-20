@@ -13,6 +13,9 @@ from . import retention
 from .controlled_run import CriticalConnection, CriticalFailure, require, compare_original
 from .production_preflight import snapshot, sha
 
+# Backup retention runs only when this variable is exactly 'apply'.
+RETENTION_ENV = 'AERIS_BACKUP_RETENTION'
+
 
 def run(db, **kwargs):
     db = Path(db).resolve()
@@ -80,7 +83,10 @@ def run(db, **kwargs):
             audit['after'] = snapshot(db)
             require(audit['after']['integrity_check'] == ['ok'], 'Final integrity failed')
             audit.update(status=result['status'], synchronization=result)
-            if result['status'] == 'success':
+            if result['status'] == 'success' and os.environ.get(RETENTION_ENV) != 'apply':
+                # Disabled unless explicitly authorized; backups are never removed by default.
+                audit['retention'] = {'applied': False, 'reason': 'disabled'}
+            elif result['status'] == 'success':
                 # Still under the lock; the verified baseline of this run is always kept.
                 # A retention failure is recorded but never turns a success into a failure.
                 try:

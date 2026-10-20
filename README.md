@@ -80,10 +80,11 @@ manualmente o desde la tarea programada; ninguno corre al iniciar Flask.
 
 Cada sincronización crea primero un respaldo en `data/backups/`, registra su
 ejecución en `ingestas` y conserva las discrepancias como candidatas sin
-sobrescribir el valor original. La sincronización programada
-(`data_ingestion.scheduled_sync`) aplica después la retención: conserva los 5
-respaldos rutinarios más recientes y el último de cada día durante 14 días;
-los respaldos de hitos nunca se eliminan.
+sobrescribir el valor original. La retención automática de respaldos está
+**desactivada por defecto**: `data_ingestion.scheduled_sync` solo la aplica si
+`AERIS_BACKUP_RETENTION=apply` está definido explícitamente. Con ella se
+conservarían los 5 respaldos rutinarios más recientes y el último de cada día
+durante 14 días; los respaldos de hitos nunca se eliminan.
 
 Detalle completo de ingesta, calidad, recuperación y pronóstico en
 [operación detallada](docs/operacion.md).
