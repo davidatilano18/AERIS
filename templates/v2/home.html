@@ -16,7 +16,7 @@
 <a class="skip" href="#main">Saltar al contenido</a>
 <header class="site-header"><div class="wrap nav-row">
   <a class="brand" href="/inicio" aria-label="AERIS, inicio"><span class="brand-icon" aria-hidden="true">≋</span><span>AERIS<small>INTELIGENCIA AMBIENTAL</small></span></a>
-  <nav aria-label="Navegación principal"><a href="#estado">¿Cómo está?</a><a href="#panorama">Panorama</a><a href="#mapa">Mapa</a><a href="#tiempo">Tiempo</a><a href="/inicio/explorar">Laboratorio</a><a href="#investigacion">Investigación</a><a href="/v2/datos">Datos <span aria-hidden="true">↗</span></a></nav>
+  <nav aria-label="Navegación principal"><a href="#estado">¿Cómo está?</a><a href="/inicio/aprende">Aprende</a><a href="#panorama">Panorama</a><a href="#mapa">Mapa</a><a href="#tiempo">Tiempo</a><a href="/inicio/explorar">Laboratorio</a><a href="#investigacion">Investigación</a><a href="/inicio/datos">Datos</a></nav>
   <a class="nav-tag" href="/inicio/anterior">Comparar versión anterior ↗</a>
 </div></header>
 <main id="main">
@@ -80,6 +80,7 @@
         <li class="b-muymala"><span>Muy mala</span><b>79–130</b><small>Riesgo muy alto</small></li>
         <li class="b-extrema"><span>Extremadamente mala</span><b>&gt;130</b><small>Riesgo extremo</small></li>
       </ol>
+      <a class="estado-aprende" href="/inicio/aprende#un-dia">¿Cómo se calcula esto? Aprende paso a paso →</a>
       <p class="estado-source">NOM-172-SEMARNAT-2023 (Tabla 5), valores vigentes desde enero de 2026. Se aplican a todos los días para comparar con una sola vara; en 2024–2025 el límite de «Aceptable» era {{ estado.limite_aceptable_2024_2025 }}.</p>
     </div>
   </div>
@@ -125,7 +126,7 @@
   <div class="puertas-rejilla">
     <a class="puerta" href="/inicio/explorar"><span class="puerta-numero">01 · LABORATORIO</span><span class="puerta-flecha" aria-hidden="true">↗</span><h3>Estación por estación, hora por hora.</h3><p>PM2.5 y meteorología con filtros, cobertura y valores originales.</p>{% if overview %}<p class="puerta-cifra"><strong data-cifra="{{ overview.observed_stations }}">{{ overview.observed_stations }}</strong>estaciones con registros</p>{% endif %}</a>
     <a class="puerta" href="#mapa"><span class="puerta-numero">02 · TERRITORIO</span><span class="puerta-flecha" aria-hidden="true">↘</span><h3>Dónde se mide el aire.</h3><p>Estaciones de calidad del aire y la estación meteorológica de El Marqués.</p>{% if overview %}<p class="puerta-cifra"><strong data-cifra="{{ overview.observed_municipalities }}">{{ overview.observed_municipalities }}</strong>municipios con observaciones</p>{% endif %}</a>
-    <a class="puerta" href="/v2/datos"><span class="puerta-numero">03 · DATOS ABIERTOS</span><span class="puerta-flecha" aria-hidden="true">↗</span><h3>Cada medición, con su revisión.</h3><p>Explorador técnico con fuentes separadas, huecos visibles y exportación.</p>{% if overview %}<p class="puerta-cifra"><strong data-cifra="{{ overview.total }}">{{ '{:,}'.format(overview.total) }}</strong>mediciones horarias</p>{% endif %}</a>
+    <a class="puerta" href="/inicio/datos"><span class="puerta-numero">03 · DATOS ABIERTOS</span><span class="puerta-flecha" aria-hidden="true">↗</span><h3>Descarga nuestra base.</h3><p>PM2.5 horario y diario, meteorología y reanálisis en CSV, con diccionario y licencia.</p>{% if overview %}<p class="puerta-cifra"><strong data-cifra="{{ overview.total }}">{{ '{:,}'.format(overview.total) }}</strong>mediciones horarias</p>{% endif %}</a>
   </div>
 </section>
 {% endif %}

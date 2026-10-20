@@ -25,7 +25,7 @@ from wsgi import application
 cliente = application.test_client()
 E = 'ghcnh:MXI0000MMQT'
 rutas = [
- '/health/live', '/health/ready', '/favicon.ico', '/inicio', '/inicio/explorar', '/inicio/anterior', '/v2', '/v2/datos', '/api/v2/stations', '/api/v2/observations?period=7d',
+ '/health/live', '/health/ready', '/favicon.ico', '/inicio', '/inicio?experiencia=inmersiva', '/inicio/aprende', '/inicio/datos', '/inicio/datos/pm25-diario.csv', '/inicio/datos/meteorologia-mmqt.csv', '/inicio/explorar', '/inicio/anterior', '/v2', '/v2/datos', '/api/v2/stations', '/api/v2/observations?period=7d',
  '/api/v2/public', '/api/v2/comparison?station=1352676&anchor=latest',
  '/api/ambiental/v1/fuentes', '/api/ambiental/v1/variables', '/api/ambiental/v1/estaciones',
  '/api/ambiental/v1/ingestas',

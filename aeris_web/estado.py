@@ -38,7 +38,8 @@ def banda(valor):
     return BANDAS[-1]
 
 
-def read_estado(path, now=None):
+def agrupar(path, now=None):
+    """Horas por (fuente, sensor, día local): limpias y totales. Base común del resumen y del CSV diario."""
     now = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
     with closing(connect_readonly(Path(path))) as conn:
         catalogo = read_catalog(conn)
@@ -60,7 +61,29 @@ def read_estado(path, now=None):
         if not en_revision:
             dias[clave]['limpias'].append(valor)
             horas[(fuente, local.hour)].append(valor)
+    return catalogo, dias, horas
 
+
+def registros_diarios(path, now=None):
+    """Un registro por estación, fuente y día local, con el mismo criterio que el resumen."""
+    catalogo, dias, _ = agrupar(path, now)
+    for (fuente, sensor, dia), d in sorted(dias.items(), key=lambda x: (x[0][0], x[0][1], x[0][2])):
+        n = len(d['limpias'])
+        media = sum(d['limpias']) / n if n >= HORAS_MINIMAS else None
+        if media is not None:
+            estado = banda(media)
+        elif d['total'] >= HORAS_MINIMAS:
+            estado = 'En revisión'
+        else:
+            estado = 'Sin promedio'
+        yield {'fuente': FUENTES[fuente], 'sensor_id': sensor, 'estacion': catalogo[sensor]['name'],
+               'municipio': catalogo[sensor]['municipality'], 'fecha_local': dia.isoformat(),
+               'horas_con_dato': d['total'], 'horas_validas': n, 'promedio_24h_ug_m3': media,
+               'clasificacion_nom172': estado, 'supera_guia_oms': (media > OMS_24H) if media is not None else None}
+
+
+def read_estado(path, now=None):
+    catalogo, dias, horas = agrupar(path, now)
     series = {}
     picos = []
     for (fuente, sensor, dia), d in dias.items():
