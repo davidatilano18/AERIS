@@ -1,5 +1,5 @@
 import sqlite3
-from flask import Blueprint,current_app,jsonify,render_template,request,send_from_directory
+from flask import Blueprint,current_app,jsonify,make_response,render_template,request,send_from_directory
 from .data import read_dashboard,TooManyRows
 from .public_data import explain
 from .comparisons import read_comparison
@@ -12,9 +12,28 @@ def favicon():
     return send_from_directory(current_app.static_folder, 'logo.png', mimetype='image/png', max_age=86400)
 
 
+# AERIS 3.0: la experiencia inmersiva se elige en el servidor (sin destellos) y se recuerda.
+EXPERIENCIAS = ('clasica', 'inmersiva')
+EXPERIENCIA_PREDETERMINADA = 'clasica'
+GALLETA_EXPERIENCIA = 'aeris_experiencia'
+
+
+def experiencia_elegida():
+    pedida = request.args.get('experiencia')
+    if pedida in EXPERIENCIAS:
+        return pedida, True
+    guardada = request.cookies.get(GALLETA_EXPERIENCIA)
+    return (guardada if guardada in EXPERIENCIAS else EXPERIENCIA_PREDETERMINADA), False
+
+
 @blueprint.get('/inicio')
 def home():
-    return render_home('v2/home.html')
+    experiencia, recordar = experiencia_elegida()
+    response = make_response(render_home('v2/home.html', experiencia=experiencia))
+    if recordar:
+        response.set_cookie(GALLETA_EXPERIENCIA, experiencia, max_age=180 * 86400, path='/inicio',
+                            httponly=True, samesite='Lax', secure=request.is_secure)
+    return response
 
 
 @blueprint.get('/inicio/anterior')
@@ -27,7 +46,7 @@ def workspace():
     return render_home('v2/workspace.html')
 
 
-def render_home(template):
+def render_home(template, **extra):
     from .home import read_home
     from datetime import datetime
     from zoneinfo import ZoneInfo
@@ -46,10 +65,10 @@ def render_home(template):
         except (sqlite3.Error, RuntimeError, KeyError, ValueError):
             estado = None  # El resumen es complementario: nunca impide mostrar el resto.
         return render_template(template, overview=overview, local_date=local_date, unavailable=False,
-                               estado=estado, short_date=short_date)
+                               estado=estado, short_date=short_date, **extra)
     except (sqlite3.Error, FileNotFoundError, RuntimeError, KeyError, ValueError):
         return render_template(template, overview=None, local_date=local_date, unavailable=True,
-                               estado=None, short_date=short_date), 503
+                               estado=None, short_date=short_date, **extra), 503
 
 
 @blueprint.get('/v2')

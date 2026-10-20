@@ -139,8 +139,15 @@ def read_estado(path, now=None):
                                 'n': [len(v) for _, v in puntos], 'manana': manana, 'tarde': tarde,
                                 'minimo': minimo, 'razon': medias[max(manana, tarde, key=lambda h: medias[h])] / medias[minimo]
                                 if medias[minimo] else None}
+    # Día completo más reciente de UNA estación (la API más reciente); sirve de dato para la portada.
+    recientes = [p for p in picos if p['fuente'] == FUENTES['OpenAQ']]
+    dia_reciente = None
+    if recientes:
+        ultimo_dia = max(p['dia'] for p in recientes)
+        # Desempate neutral (orden alfabético), sin elegir el valor más alto ni el más bajo.
+        dia_reciente = min((p for p in recientes if p['dia'] == ultimo_dia), key=lambda p: p['nombre'])
     picos.sort(key=lambda p: -p['media'])
     revisiones = sum(s['revision'] for s in lista)
-    return {'resumen': resumen, 'anterior': anterior, 'series': lista, 'perfiles': perfiles, 'picos': picos[:3],
+    return {'resumen': resumen, 'anterior': anterior, 'dia_reciente': dia_reciente, 'series': lista, 'perfiles': perfiles, 'picos': picos[:3],
             'revisiones': revisiones, 'oms': OMS_24H, 'bandas': BANDAS, 'limites': LIMITES,
             'limite_aceptable_2024_2025': LIMITE_ACEPTABLE_2024_2025}

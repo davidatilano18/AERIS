@@ -102,7 +102,7 @@
       for (const entry of entries) if (entry.isIntersecting) { entry.target.classList.add('is-visible'); reveal.unobserve(entry.target); }
     }, {rootMargin: '0px 0px -8% 0px', threshold: .06});
     for (const section of sections) {
-      if (section.classList.contains('hero')) continue;
+      if (section.classList.contains('hero') || section.classList.contains('escena')) continue;  // las escenas 3.0 las anima GSAP
       section.classList.add('reveal');
       reveal.observe(section);
     }

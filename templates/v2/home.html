@@ -1,5 +1,6 @@
 <!doctype html>
-<html lang="es">
+{% set inmersiva = experiencia == 'inmersiva' %}
+<html lang="es"{% if inmersiva %} class="exp-inmersiva escena-sin-js"{% endif %}>
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="description" content="Explora qué sabemos del aire en Querétaro. Observaciones reales, historia ambiental y preguntas abiertas.">
@@ -7,7 +8,10 @@
   <link rel="icon" type="image/png" href="{{ url_for('static',filename='logo.png') }}">
   <link rel="stylesheet" href="{{ url_for('static',filename='v2/vendor/leaflet/leaflet.css') }}">
   <link rel="stylesheet" href="{{ url_for('static',filename='v2/css/home.css') }}">
-</head>
+{% if inmersiva %}  <link rel="stylesheet" href="{{ url_for('static',filename='v2/css/fuentes.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static',filename='v2/css/inmersivo.css') }}">
+  <script>document.documentElement.classList.remove('escena-sin-js')</script>
+{% endif %}</head>
 <body data-offline="{{ 'true' if demo_bundle and demo_bundle.offline else 'false' }}">
 <a class="skip" href="#main">Saltar al contenido</a>
 <header class="site-header"><div class="wrap nav-row">
@@ -17,7 +21,27 @@
 </div></header>
 <main id="main">
 {% if demo_bundle %}<div class="wrap demo-cut">DEMOSTRACIÓN · Corte preparado {{ local_date(demo_bundle.created_utc) }}. Consulta la fecha ambiental de cada serie.{% if demo_bundle.offline %} Sin conexión externa.{% endif %}</div>{% endif %}
-<section class="hero" aria-labelledby="hero-title">
+{% if inmersiva %}{% set dr = estado.dia_reciente if estado else none %}
+<div class="escena-lienzo" aria-hidden="true"><canvas id="atmosfera" data-particulas="{{ ((1600 * dr.media / 15)|round|int) if dr else 1200 }}"></canvas><div class="escena-respaldo"></div></div>
+<section class="escena escena-intro" aria-labelledby="intro-titulo">
+  <div class="intro-contenido">
+    <p class="intro-kicker">Inteligencia ambiental · Querétaro</p>
+    <h1 id="intro-titulo" class="intro-marca">AERIS</h1>
+    <p class="intro-lema">Observamos el aire que respiras. <em>Con evidencia.</em></p>
+    <div class="intro-acciones"><a class="boton-escena primario" href="#estado">Ir a los datos <span aria-hidden="true">↓</span></a><a class="boton-escena" href="/inicio/explorar">Abrir laboratorio <span aria-hidden="true">↗</span></a><button class="boton-escena" id="saltarEscena" type="button">Saltar animación</button><button class="boton-escena" id="motionToggle" type="button" aria-pressed="false">Pausar movimiento</button></div>
+    {% if dr %}<p class="intro-dato">Las partículas en pantalla son proporcionales al promedio real de PM2.5 del <strong>{{ short_date(dr.dia) }}</strong> en <strong>{{ dr.nombre }}</strong>: <strong>{{ '%.1f'|format(dr.media) }} µg/m³</strong>, calidad {{ dr.banda|lower }}. Con un máximo visual por dispositivo.</p>{% endif %}
+  </div>
+  <a class="intro-desliza" href="#aire">Desliza</a>
+</section>
+<section class="escena escena-aire" id="aire" aria-label="Entrar al aire">
+  <div class="aire-fijo">
+    <p class="aire-frase">Cada respiración lleva partículas <em>que no vemos.</em></p>
+    <p class="aire-frase">Las <em>PM2.5</em> miden menos de 2.5 micrómetros.<small>Unas 30 veces más delgadas que un cabello humano (EPA de EE. UU.).</small></p>
+    <p class="aire-frase">Estaciones oficiales las miden cada hora. <em>AERIS</em> las convierte en respuestas.</p>
+  </div>
+</section>
+{% endif %}
+{% if not inmersiva %}<section class="hero" aria-labelledby="hero-title">
   <div class="atmosphere" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
   <div class="wrap hero-layout">
     <div class="hero-copy"><p class="eyebrow"><span class="tiny-line"></span> CIENCIA QUE SE PUEDE ENTENDER</p>
@@ -35,7 +59,7 @@
     </aside>
   </div>
   <div class="wrap hero-bottom"><span>DATOS REALES. PREGUNTAS ABIERTAS.</span><button id="motionToggle" type="button" aria-pressed="false">Pausar movimiento</button><a href="#panorama" aria-label="Ir al panorama de datos">DESCUBRE LO QUE SABEMOS ↓</a></div>
-</section>
+</section>{% endif %}
 {% if estado and estado.resumen %}{% set r = estado.resumen %}
 <section class="section wrap estado" id="estado" aria-labelledby="estado-title">
   <div class="section-head"><div><p class="eyebrow">01 / LA RESPUESTA CORTA</p><h2 id="estado-title">¿Cómo está el aire en Querétaro?</h2></div><p>Promedios diarios de PM2.5 comparados con la norma mexicana.<br>Cada estación por separado; sin promedios inventados.</p></div>
@@ -92,6 +116,17 @@
     </article>
   </div>
   <script id="estadoPerfiles" type="application/json">{{ estado.perfiles|tojson }}</script>
+</section>
+{% endif %}
+{% if inmersiva %}
+<section class="section wrap puertas" aria-labelledby="puertas-titulo">
+  <p class="eyebrow">EXPLORA AERIS</p>
+  <h2 class="puertas-titulo" id="puertas-titulo">Entra a los datos.</h2>
+  <div class="puertas-rejilla">
+    <a class="puerta" href="/inicio/explorar"><span class="puerta-numero">01 · LABORATORIO</span><span class="puerta-flecha" aria-hidden="true">↗</span><h3>Estación por estación, hora por hora.</h3><p>PM2.5 y meteorología con filtros, cobertura y valores originales.</p>{% if overview %}<p class="puerta-cifra"><strong data-cifra="{{ overview.observed_stations }}">{{ overview.observed_stations }}</strong>estaciones con registros</p>{% endif %}</a>
+    <a class="puerta" href="#mapa"><span class="puerta-numero">02 · TERRITORIO</span><span class="puerta-flecha" aria-hidden="true">↘</span><h3>Dónde se mide el aire.</h3><p>Estaciones de calidad del aire y la estación meteorológica de El Marqués.</p>{% if overview %}<p class="puerta-cifra"><strong data-cifra="{{ overview.observed_municipalities }}">{{ overview.observed_municipalities }}</strong>municipios con observaciones</p>{% endif %}</a>
+    <a class="puerta" href="/v2/datos"><span class="puerta-numero">03 · DATOS ABIERTOS</span><span class="puerta-flecha" aria-hidden="true">↗</span><h3>Cada medición, con su revisión.</h3><p>Explorador técnico con fuentes separadas, huecos visibles y exportación.</p>{% if overview %}<p class="puerta-cifra"><strong data-cifra="{{ overview.total }}">{{ '{:,}'.format(overview.total) }}</strong>mediciones horarias</p>{% endif %}</a>
+  </div>
 </section>
 {% endif %}
 {% if aeris_snapshot_created %}<div class="snapshot-banner wrap">Copia estática preparada el {{ aeris_snapshot_created }}. Esa fecha no es la fecha de medición del aire.</div>{% endif %}
@@ -151,7 +186,7 @@
 </div><p class="scope-note">Huimilpan no tiene sensor en nuestro catálogo seleccionado. Esto no acredita ausencia de estaciones externas. El alcance de AERIS depende de los datos verificables disponibles.</p></section>
 <section class="section wrap" id="datos"><div class="data-cta"><div><p class="eyebrow">08 / LA EVIDENCIA ESTÁ ABIERTA A EXPLORACIÓN</p><h2>Ve más allá del panorama.</h2><p>Consulta gráficas, fechas, fuentes, horas sin información y revisión automática de cada registro.</p></div><div class="cta-buttons"><a class="button primary" href="/inicio/explorar">Laboratorio ambiental</a><a class="button outline" href="/v2/datos">Abrir explorador de datos ↗</a><a href="/v2">Ir a la experiencia ciudadana →</a></div></div></section>
 </main>
-<footer class="wrap footer"><a class="brand" href="/inicio">AERIS<small>INTELIGENCIA AMBIENTAL PARA QUERÉTARO</small></a><p>Datos reales. Interpretaciones responsables.<br>{% if overview %}Vista consultada: {{ local_date(overview.generated) }}.<br>Esta no es la fecha de medición.{% endif %}</p><a href="/">Dashboard original ↗</a><a href="/inicio/anterior">Comparar diseño anterior</a></footer>
+<footer class="wrap footer"><a class="brand" href="/inicio">AERIS<small>INTELIGENCIA AMBIENTAL PARA QUERÉTARO</small></a><p>Datos reales. Interpretaciones responsables.<br>{% if overview %}Vista consultada: {{ local_date(overview.generated) }}.<br>Esta no es la fecha de medición.{% endif %}</p><a href="/">Dashboard original ↗</a><a href="/inicio/anterior">Comparar diseño anterior</a>{% if inmersiva %}<a href="/inicio?experiencia=clasica">Experiencia clásica</a>{% else %}<a href="/inicio?experiencia=inmersiva">Experiencia inmersiva (AERIS 3.0)</a>{% endif %}</footer>
 <script id="stationData" type="application/json">{{ (overview.stations if overview else [])|tojson }}</script>
 <script src="{{ url_for('static',filename='v2/vendor/leaflet/leaflet.js') }}" defer></script>
 <script src="{{ url_for('static',filename='v2/js/home.js') }}" defer></script>
@@ -159,5 +194,10 @@
 <script src="{{ url_for('static',filename='v2/js/home_history.js') }}" defer></script>
 <script src="{{ url_for('static',filename='v2/js/home_tiempo.js') }}" defer></script>
 <script src="{{ url_for('static',filename='v2/js/home_estado.js') }}" defer></script>
+{% if inmersiva %}<script src="{{ url_for('static',filename='v2/vendor/gsap/gsap.min.js') }}" defer></script>
+<script src="{{ url_for('static',filename='v2/vendor/gsap/ScrollTrigger.min.js') }}" defer></script>
+<script src="{{ url_for('static',filename='v2/vendor/gsap/SplitText.min.js') }}" defer></script>
+<script src="{{ url_for('static',filename='v2/js/escena/atmosfera.js') }}" defer></script>
+<script src="{{ url_for('static',filename='v2/js/escena/narrativa.js') }}" defer></script>{% endif %}
 <noscript><div class="wrap notice">Las cifras y enlaces funcionan sin JavaScript. El mapa interactivo requiere JavaScript; utiliza la lista de estaciones.</div></noscript>
 </body></html>
