@@ -10,17 +10,19 @@ serie. Las estaciones con serie idéntica a la de El Marqués se detectan compar
 coordenadas, y su validación se informa aparte: es el error del modelo en esa misma celda.
 """
 import math
+import threading
 from collections import defaultdict
 from contextlib import closing
-from datetime import datetime
 from pathlib import Path
 
 from data_ingestion.visibility import connect_readonly
 
-from .indice import HORAS_MINIMAS, ZONA, banda, leer_horas, promedio
+from .indice import HORAS_MINIMAS, banda, hora_local, leer_horas, promedio
 
 CERCANA = 'openaq:480392'  # Epigmenio González, la estación con PM2.5 más cercana (≈ 8 km).
 _CACHE = {}
+# Un solo cálculo a la vez: quien llega mientras se calcula (p. ej. durante el precalentado) espera el resultado.
+_CANDADO = threading.Lock()
 
 
 def diarios_modelo(conn):
@@ -29,7 +31,7 @@ def diarios_modelo(conn):
     for eid, fecha, valor in conn.execute(
             """SELECT o.estacion_id,o.fecha_utc,o.valor FROM amb_observaciones o JOIN amb_estaciones e USING(estacion_id)
                WHERE e.fuente_id='open-meteo-cams' AND o.variable_id='pm25' AND o.fuera_de_rango=0"""):
-        dias[eid][datetime.fromisoformat(fecha.replace('Z', '+00:00')).astimezone(ZONA).date()].append(valor)
+        dias[eid][hora_local(fecha).date()].append(valor)
     return dias
 
 
@@ -67,10 +69,11 @@ def read_modelo(path):
     path = Path(path)
     estado = path.stat()
     clave = (str(path.resolve()), estado.st_size, estado.st_mtime_ns)
-    if clave not in _CACHE:
-        _CACHE.clear()
-        _CACHE[clave] = _resumir(path)
-    return _CACHE[clave]
+    with _CANDADO:
+        if clave not in _CACHE:
+            _CACHE.clear()
+            _CACHE[clave] = _resumir(path)
+        return _CACHE[clave]
 
 
 def _resumir(path):

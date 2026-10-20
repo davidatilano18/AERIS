@@ -19,9 +19,11 @@ borra nada: la hora se excluye del cálculo y se cuenta. Una marca invita a revi
 """
 import json
 import math
+import threading
 from collections import defaultdict
 from contextlib import closing
 from datetime import datetime, timedelta, timezone
+from functools import lru_cache
 from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -52,7 +54,8 @@ def requiere_revision(contaminante, horas):
     marcadas, previo = set(), None
     for t in sorted(horas):
         v = horas[t]
-        adyacente = previo is not None and t - previo[0] == timedelta(hours=1)
+        # Diferencia entre instantes reales (UTC), no entre horas de reloj.
+        adyacente = previo is not None and t.astimezone(timezone.utc) - previo[0].astimezone(timezone.utc) == timedelta(hours=1)
         if v > extremo or (adyacente and abs(v - previo[1]) > salto):
             marcadas.add(t)
         previo = (t, v)
@@ -98,26 +101,50 @@ def concentracion_diaria(contaminante, horas):
 
 
 def maximo_movil_8h(serie, dia):
-    """Máximo de los promedios móviles de 8 h que terminan en las horas del día (cada uno con ≥ 6 horas)."""
-    inicio = datetime(dia.year, dia.month, dia.day, tzinfo=ZONA)
+    """Máximo de los promedios móviles de 8 h que terminan en las horas del día (cada uno con ≥ 6 horas).
+    Se recorre en UTC: con horario de verano (hasta 2022) el día local tiene 23 o 25 horas y la resta de
+    horas sobre la hora de reloj desfasaría la ventana."""
+    inicio = datetime(dia.year, dia.month, dia.day, tzinfo=ZONA).astimezone(timezone.utc)
+    siguiente = dia + timedelta(days=1)
+    fin = datetime(siguiente.year, siguiente.month, siguiente.day, tzinfo=ZONA).astimezone(timezone.utc)
+    n = int((fin - inicio) / timedelta(hours=1))
+    # Valores de las 7 horas previas al día y de las del día, cada uno convertido a decimal una sola vez.
+    valores = [serie.get(inicio + timedelta(hours=k)) for k in range(-7, n)]
+    valores = [None if v is None else decimal(v) for v in valores]
     promedios = []
-    for h in range(24):
-        fin = inicio + timedelta(hours=h)
-        ventana = [serie[t] for t in (fin - timedelta(hours=k) for k in range(8)) if t in serie]
+    for h in range(n):
+        ventana = [v for v in valores[h:h + 8] if v is not None]
         if len(ventana) >= 6:
-            promedios.append(promedio(ventana))
+            promedios.append(sum(ventana) / len(ventana))
     return max(promedios) if promedios else None
+
+
+@lru_cache(maxsize=None)
+def hora_local(fecha_utc):
+    """Instante UTC almacenado -> hora de Querétaro. Las mismas horas se repiten en cada estación y variable."""
+    return datetime.fromisoformat(fecha_utc.replace('Z', '+00:00')).astimezone(ZONA)
+
+
+def revisar_series(series):
+    """Copia de las series sin las horas que marca gases-v1, y cuántas se apartaron por serie.
+    El PM2.5 no pasa por aquí: ya llega filtrado por su propia revisión versionada."""
+    revisadas, revision = {}, defaultdict(int)
+    for clave, horas in series.items():
+        marcadas = requiere_revision(clave[1], horas) if clave[1] != 'pm25' else set()
+        revisadas[clave] = {t: v for t, v in horas.items() if t not in marcadas}
+        if marcadas:
+            revision[clave] = len(marcadas)
+    return revisadas, revision
 
 
 def leer_horas(path, revisar=True):
     """{(estacion_id, contaminante): {datetime local: valor}}; revisar=False omite gases-v1 (sensibilidad)."""
     series = defaultdict(dict)
     nombres = {}
-    revision = defaultdict(int)  # horas de gases/PM10 excluidas por gases-v1, por (estación, contaminante)
     with closing(connect_readonly(Path(path))) as conn:
         tablas = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
         if 'amb_estaciones' not in tablas:
-            return series, nombres, revision
+            return series, nombres, {}
         sensores = {}
         for eid, nombre, municipio, meta in conn.execute(
                 "SELECT estacion_id,nombre,municipio,metadatos_json FROM amb_estaciones WHERE fuente_id='openaq-archivo'"):
@@ -129,11 +156,7 @@ def leer_horas(path, revisar=True):
                 """SELECT o.estacion_id,o.variable_id,o.fecha_utc,o.valor FROM amb_observaciones o
                    JOIN amb_estaciones e USING(estacion_id) WHERE e.fuente_id='openaq-archivo'
                    AND o.marca_origen=0 AND o.fuera_de_rango=0"""):
-            series[(eid, variable)][datetime.fromisoformat(fecha.replace('Z', '+00:00')).astimezone(ZONA)] = valor
-        for clave in list(series) if revisar else ():
-            for t in requiere_revision(clave[1], series[clave]):
-                del series[clave][t]
-                revision[clave] += 1
+            series[(eid, variable)][hora_local(fecha)] = valor
         calidad = 'calidad_mediciones' in tablas
         union = 'LEFT JOIN calidad_mediciones q USING(fuente,sensor_id,fecha_utc,contaminante)' if calidad else ''
         filtro = 'AND COALESCE(q.requiere_revision,0)=0' if calidad else ''
@@ -143,13 +166,20 @@ def leer_horas(path, revisar=True):
                     WHERE m.fuente='OpenAQ-Archive' AND m.contaminante='pm25' AND m.sensor_id IN ({marcas}) {filtro}""",
                 list(sensores)):
             if math.isfinite(valor):
-                series[(sensores[sensor], 'pm25')][datetime.fromisoformat(fecha.replace('Z', '+00:00')).astimezone(ZONA)] = valor
-    return series, nombres, revision
+                series[(sensores[sensor], 'pm25')][hora_local(fecha)] = valor
+    if not revisar:
+        return series, nombres, {}
+    revisadas, revision = revisar_series(series)
+    return revisadas, nombres, revision
 
 
 def dias(path, revisar=True):
     """Un registro por estación y día con la categoría de cada contaminante y la del día."""
     series, nombres, _ = leer_horas(path, revisar)
+    return calcular_dias(series, nombres)
+
+
+def calcular_dias(series, nombres):
     por_dia = defaultdict(lambda: defaultdict(dict))
     for (eid, contaminante), horas in series.items():
         for t, v in horas.items():
@@ -174,25 +204,10 @@ def dias(path, revisar=True):
     return salida
 
 
-def resumen_por_anio(registros):
-    """Por estación y año: días por categoría del día y qué contaminante la determinó en días no «Buena»."""
-    tabla = defaultdict(lambda: {'dias': 0, 'categorias': dict.fromkeys(BANDAS, 0), 'determinantes': defaultdict(int),
-                                 'cobertura': defaultdict(int)})
-    for r in registros:
-        t = tabla[(r['estacion_id'], r['dia'].year)]
-        t['nombre'], t['municipio'] = r.get('nombre'), r.get('municipio')
-        t['dias'] += 1
-        t['categorias'][r['categoria']] += 1
-        for c in r['contaminantes']:
-            t['cobertura'][c] += 1
-        if r['categoria'] != 'Buena':
-            for c in r['determinantes']:
-                t['determinantes'][c] += 1
-    return tabla
-
-
 DESDE_ANIO = 2023  # 2021 solo tiene unas dos semanas por estación en el archivo; se omite del resumen.
 _CACHE = {}
+# Un solo cálculo a la vez: quien llega mientras se calcula (p. ej. durante el precalentado) espera el resultado.
+_CANDADO = threading.Lock()
 
 
 def read_indice(path):
@@ -200,15 +215,17 @@ def read_indice(path):
     path = Path(path)
     estado = path.stat()
     clave = (str(path.resolve()), estado.st_size, estado.st_mtime_ns)
-    if clave not in _CACHE:
-        _CACHE.clear()
-        _CACHE[clave] = _resumir(path)
-    return _CACHE[clave]
+    with _CANDADO:
+        if clave not in _CACHE:
+            _CACHE.clear()
+            _CACHE[clave] = _resumir(path)
+        return _CACHE[clave]
 
 
 def _resumir(path):
-    series, nombres, revision = leer_horas(path)
-    registros = [r for r in dias(path) if r['dia'].year >= DESDE_ANIO]
+    crudas, nombres, _ = leer_horas(path, revisar=False)  # una sola lectura de la base
+    series, revision = revisar_series(crudas)
+    registros = [r for r in calcular_dias(series, nombres) if r['dia'].year >= DESDE_ANIO]
     if not registros:
         return None
     total = dict.fromkeys(BANDAS, 0)
@@ -233,7 +250,7 @@ def _resumir(path):
     # Sensibilidad (revisión de Codex, hallazgo B): la regla gases-v1 impide por construcción ver
     # «Extremadamente mala» en gases y PM10. Se publica qué cambiaría sin ella.
     con = {(r['estacion_id'], r['dia']): r['categoria'] for r in registros}
-    sin = {(r['estacion_id'], r['dia']): r['categoria'] for r in dias(path, revisar=False) if r['dia'].year >= DESDE_ANIO}
+    sin = {(r['estacion_id'], r['dia']): r['categoria'] for r in calcular_dias(crudas, nombres) if r['dia'].year >= DESDE_ANIO}
     graves = ('Muy mala', 'Extremadamente mala')
     sensibilidad = {'dias_que_cambian': sum(con.get(k) != v for k, v in sin.items()),
                     'graves_con': sum(v in graves for v in con.values()),

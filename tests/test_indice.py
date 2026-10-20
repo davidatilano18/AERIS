@@ -66,6 +66,19 @@ class CalculoDiarioTests(unittest.TestCase):
         hueco = self.horas([1.0, None, None, 13.5])
         self.assertEqual(requiere_revision('co', hueco), set())
 
+    def test_ventanas_en_utc_con_horario_de_verano(self):
+        # 30/10/2022: último cambio de horario en Querétaro; ese día local tiene 25 horas.
+        dia = date(2022, 10, 30)
+        inicio = datetime(2022, 10, 30, tzinfo=ZONA).astimezone(timezone.utc)
+        serie = {(inicio + timedelta(hours=k)).astimezone(ZONA): 1.0 for k in range(-7, 25)}
+        serie[(inicio + timedelta(hours=24)).astimezone(ZONA)] = 9.0  # última hora real del día local
+        # Con 8 horas, la ventana que termina en esa hora promedia (7 × 1 + 9) / 8 = 2.
+        self.assertEqual(maximo_movil_8h(serie, dia), 2)
+        # Dos horas consecutivas en UTC con la misma hora de reloj (01:00 repetida) son adyacentes.
+        a = datetime(2022, 10, 30, 7, tzinfo=timezone.utc).astimezone(ZONA)
+        b = datetime(2022, 10, 30, 8, tzinfo=timezone.utc).astimezone(ZONA)
+        self.assertEqual(requiere_revision('o3', {a: 0.02, b: 0.20}), {b})
+
     def test_bandas_en_orden(self):
         self.assertEqual(BANDAS[0], 'Buena')
         self.assertEqual(BANDAS[-1], 'Extremadamente mala')
