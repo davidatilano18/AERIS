@@ -42,6 +42,19 @@ def banda(valor):
     return BANDAS[-1]
 
 
+MESES = ('ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic')
+
+
+def rango_meses(inicio, fin):
+    """«Sep–oct 2026» o, si cruza de año, «Sep 2021 – oct 2026». Un inicio tras el día 24 cuenta desde el mes siguiente."""
+    if inicio.day >= 25 and (inicio.year, inicio.month) < (fin.year, fin.month):
+        inicio = inicio.replace(day=1, month=inicio.month % 12 + 1, year=inicio.year + (inicio.month == 12))
+    a, b = MESES[inicio.month - 1], MESES[fin.month - 1]
+    if inicio.year != fin.year:
+        return f'{a.capitalize()} {inicio.year} – {b} {fin.year}'
+    return f'{a.capitalize()} {fin.year}' if inicio.month == fin.month else f'{a.capitalize()}–{b} {fin.year}'
+
+
 def agrupar(path, now=None):
     """Horas por (fuente, sensor, día local): limpias y totales. Base común del resumen y del CSV diario."""
     now = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
@@ -111,7 +124,6 @@ def read_estado(path, now=None):
         elif d['total'] >= HORAS_MINIMAS:
             s['revision'] += 1  # Habría sido un día completo; las horas marcadas lo dejan sin promedio.
 
-    meses = ('ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic')
     lista = []
     for s in series.values():
         if not s['validos'] and not s['revision']:
@@ -122,12 +134,16 @@ def read_estado(path, now=None):
         s['pct_oms'] = 100 * s['oms'] / n if n else 0
         s['media'] = sum(s['medias']) / n if n else None
         s.pop('medias')
-        fin = s['ultimo_valido'] or s['ultimo']
-        inicio = s['primero'] if s['primero'].day < 25 else s['primero'].replace(day=28)
-        nombre_inicio = meses[(inicio.month if s['primero'].day < 25 else inicio.month % 12 + 1) - 1]
-        rango = nombre_inicio.capitalize() if nombre_inicio == meses[fin.month - 1] else f"{nombre_inicio.capitalize()}–{meses[fin.month - 1]}"
-        s['periodo'] = f"{rango} {fin.year} · {s['fuente_nombre']}"
         lista.append(s)
+    # API: cada serie con su propio rango (las horas antiguas de una estación no se unen a las actuales).
+    # Archivo: un grupo con el rango de toda la fuente; cada fila conserva sus propias fechas.
+    for s in lista:
+        s['periodo'] = f"{rango_meses(s['primero'], s['ultimo_valido'] or s['ultimo'])} · {s['fuente_nombre']}"
+    archivo = [s for s in lista if s['fuente'] == 'OpenAQ-Archive']
+    if archivo:
+        rango = rango_meses(min(s['primero'] for s in archivo), max(s['ultimo_valido'] or s['ultimo'] for s in archivo))
+        for s in archivo:
+            s['periodo'] = f"{rango} · {s['fuente_nombre']}"
     # Primero el periodo más reciente; dentro, por municipio y nombre.
     lista.sort(key=lambda s: (-s['ultimo'].toordinal(), s['municipio'], s['nombre']))
 
@@ -146,15 +162,19 @@ def read_estado(path, now=None):
                    'pct_oms': 100 * sum(s['oms'] for s in actuales) / total,
                    'revision': sum(s['revision'] for s in actuales)}
 
-    # Periodo anterior (otra fuente y otra temporada): contexto, no tendencia.
-    anteriores = [x for x in lista if x not in actuales and x['fuente'] == 'OpenAQ-Archive' and x['validos']]
+    # Antes del periodo actual (otra fuente y otras temporadas): contexto, no tendencia.
+    corte = resumen['desde'] if resumen else None
+    previos = [(sensor, dia, promedio(d['limpias'])) for (fuente, sensor, dia), d in dias.items()
+               if fuente == 'OpenAQ-Archive' and len(d['limpias']) >= HORAS_MINIMAS and (corte is None or dia < corte)]
     anterior = None
-    if anteriores:
-        n = sum(x['validos'] for x in anteriores)
-        anterior = {'periodo': anteriores[0]['periodo'], 'estaciones': len(anteriores), 'dias': n,
-                    'pct_buena': 100 * sum(x['conteo']['Buena'] for x in anteriores) / n,
-                    'malos': sum(x['conteo'][b] for x in anteriores for b in BANDAS[2:]),
-                    'pct_oms': 100 * sum(x['oms'] for x in anteriores) / n}
+    if previos:
+        n = len(previos)
+        bandas = [banda(m) for _, _, m in previos]
+        anterior = {'periodo': f"{rango_meses(min(d for _, d, _ in previos), max(d for _, d, _ in previos))} · OpenAQ Archive",
+                    'estaciones': len({s for s, _, _ in previos}), 'dias': n,
+                    'pct_buena': 100 * bandas.count('Buena') / n,
+                    'malos': sum(b in BANDAS[2:] for b in bandas),
+                    'pct_oms': 100 * sum(m > OMS_24H for _, _, m in previos) / n}
 
     perfiles = {}
     for fuente in FUENTES:
@@ -164,7 +184,9 @@ def read_estado(path, now=None):
             manana = max(range(5, 12), key=lambda h: medias[h])
             tarde = max(range(16, 24), key=lambda h: medias[h])
             minimo = min(range(24), key=lambda h: medias[h])
+            dias_fuente = [dia for (f, _, dia) in dias if f == fuente]
             perfiles[fuente] = {'nombre': FUENTES[fuente], 'medias': [round(m, 2) for m in medias],
+                                'etiqueta': f"{rango_meses(min(dias_fuente), max(dias_fuente))} ({FUENTES[fuente]})",
                                 'n': [len(v) for _, v in puntos], 'manana': manana, 'tarde': tarde,
                                 'minimo': minimo, 'razon': medias[max(manana, tarde, key=lambda h: medias[h])] / medias[minimo]
                                 if medias[minimo] else None}

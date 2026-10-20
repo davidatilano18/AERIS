@@ -71,7 +71,7 @@
       <p class="estado-big">{% if r.pct_buena >= 80 %}Mayormente <em class="b-buena">buena</em>.{% elif r.pct_buena_aceptable >= 80 %}Entre <em class="b-buena">buena</em> y <em class="b-aceptable">aceptable</em>.{% else %}Con días de calidad <em class="b-mala">mala</em>.{% endif %}</p>
       <p class="estado-lead"><strong>{{ '%.0f'|format(r.pct_buena) }} %</strong> de los {{ r.dias }} días completos de medición tuvo calidad <strong>Buena</strong> según la norma mexicana, y {% if r.malos %}<strong>{{ r.malos }}</strong> fueron Mala o peor{% else %}<strong>ninguno</strong> llegó a Mala{% endif %}.</p>
       <p class="estado-lead">Con la guía más estricta de la OMS (15 µg/m³ en 24 h), <strong>{{ '%.0f'|format(r.pct_oms) }} %</strong> de esos días la superó.</p>
-      {% if estado.anterior %}{% set a = estado.anterior %}<div class="estado-before"><span class="mini-label">¿Y ANTES?</span><p>{{ a.periodo }}, {{ a.estaciones }} estaciones: <strong>{{ '%.0f'|format(a.pct_buena) }} %</strong> de {{ a.dias }} días fue Buena, {{ a.malos }} Mala y {{ '%.0f'|format(a.pct_oms) }} % superó la guía OMS.</p><small>Otra temporada y otra fuente de datos: sirve de contexto, no demuestra una tendencia.</small></div>{% endif %}
+      {% if estado.anterior %}{% set a = estado.anterior %}<div class="estado-before"><span class="mini-label">¿Y ANTES?</span><p>{{ a.periodo }}, {{ a.estaciones }} estaciones: <strong>{{ '%.0f'|format(a.pct_buena) }} %</strong> de {{ a.dias }} días fue Buena, {{ a.malos }} Mala y {{ '%.0f'|format(a.pct_oms) }} % superó la guía OMS.</p><small>Antes del periodo actual, con otra fuente y otras temporadas: sirve de contexto, no demuestra una tendencia.</small></div>{% endif %}
     </div>
     <div class="estado-scale" aria-label="Escala oficial del Índice AIRE Y SALUD para PM2.5, promedio de 24 horas">
       <p class="mini-label">ASÍ SE CLASIFICA UN DÍA · µg/m³</p>
@@ -113,7 +113,7 @@
     <article class="estado-panel qc">
       <p class="mini-label">CONTROL DE CALIDAD</p>
       <h3>No todo pico es real.</h3>
-      <p>Un sensor puede fallar y reportar en una hora valores imposibles. AERIS marca esas horas y <strong>no las usa</strong> para calificar el día.{% if estado.revisiones %} En este periodo, <strong>{{ estado.revisiones }} día{{ 's' if estado.revisiones > 1 }}</strong> quedó fuera por eso: sin ese filtro habría parecido el peor día del registro.{% endif %}</p>
+      <p>Un sensor puede fallar y reportar en una hora valores imposibles. AERIS marca esas horas y <strong>no las usa</strong> para calificar el día.{% if estado.revisiones %} En estos datos, <strong>{{ estado.revisiones }} día{{ 's' if estado.revisiones > 1 }}</strong> {{ 'quedaron' if estado.revisiones > 1 else 'quedó' }} sin calificar por eso: con esas horas, valores imposibles habrían entrado al promedio.{% endif %}</p>
       <p class="mini-label" style="margin-top:22px">LOS DÍAS MÁS ALTOS QUE SÍ SON VÁLIDOS</p>
       <ol class="estado-top">{% for d in estado.picos %}<li><span class="dot {{ {'Buena':'b-buena','Aceptable':'b-aceptable','Mala':'b-mala','Muy mala':'b-muymala','Extremadamente mala':'b-extrema'}[d.banda] }}"></span><span><strong>{{ '%.1f'|format(d.media) }} µg/m³</strong> · {{ d.banda }}</span><small>{{ short_date(d.dia) }} · {{ d.nombre }} · {{ d.fuente }}</small></li>{% endfor %}</ol>
     </article>

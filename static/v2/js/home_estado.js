@@ -6,9 +6,8 @@
   if (!data || !canvas || !window.Chart) return;
   const perfiles = JSON.parse(data.textContent);
   const colores = {'OpenAQ': ['#75efd2', []], 'OpenAQ-Archive': ['#8fb3ff', [5, 4]]};
-  const etiquetas = {'OpenAQ': 'Sep–oct 2026 (OpenAQ API)', 'OpenAQ-Archive': 'Jun–sep 2025 (OpenAQ Archive)'};
   const datasets = Object.entries(perfiles).map(([fuente, p]) => ({
-    label: etiquetas[fuente] || p.nombre, data: p.medias.map((y, x) => ({x, y})),
+    label: p.etiqueta || p.nombre, data: p.medias.map((y, x) => ({x, y})),
     borderColor: colores[fuente][0], backgroundColor: colores[fuente][0] + '22', borderDash: colores[fuente][1],
     borderWidth: 2, pointRadius: 0, pointHoverRadius: 4, tension: .35, fill: fuente === 'OpenAQ'}));
   new Chart(canvas, {
