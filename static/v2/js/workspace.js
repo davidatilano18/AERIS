@@ -117,7 +117,7 @@
         borderColor:'#75efd2',borderWidth:1.5,pointRadius:observed.length<40?2:0,pointHoverRadius:4,tension:0,spanGaps:false,fill:false}]},
         options:{responsive:true,maintainAspectRatio:false,animation:false,parsing:false,normalized:true,
           interaction:{mode:'nearest',intersect:false},plugins:{legend:{display:false},tooltip:{callbacks:{title:items=>local(items[0].parsed.x)+' · Querétaro'}}},
-          scales:{x:{type:'linear',min:Number.isFinite(start)?start:undefined,max:end,grid:{color:'#9bc8c90a'},ticks:{color:'#b4cbd4',maxTicksLimit:5,font:{size:10},callback:value=>new Intl.DateTimeFormat('es-MX',{timeZone:'America/Mexico_City',day:'2-digit',month:'short'}).format(new Date(value))}},
+          scales:{x:{type:'linear',min:Number.isFinite(start)?start:undefined,max:end,grid:{color:'#9bc8c90a'},ticks:{color:'#b4cbd4',maxTicksLimit:5,font:{size:10},callback:value=>new Intl.DateTimeFormat('es-MX',(Number.isFinite(start)&&end-start<=172800000)?{timeZone:'America/Mexico_City',day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}:{timeZone:'America/Mexico_City',day:'2-digit',month:'short'}).format(new Date(value))}},
             y:{beginAtZero:true,grid:{color:'#9bc8c918'},ticks:{color:'#b4cbd4',font:{size:10}},title:{display:true,text:'µg/m³',color:'#b4cbd4'}}}}});
       $('labChartState').hidden=true;
     } catch(error) {

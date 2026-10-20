@@ -227,10 +227,10 @@ HTML = r'''<!DOCTYPE html>
 <html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>AERIS | Inteligencia ambiental de Querétaro</title>
 <link rel="icon" href="/logo.png" type="image/png">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="/static/v2/css/fuentes.css">
+<link rel="stylesheet" href="/static/v2/vendor/leaflet/leaflet.css">
+<script src="/static/v2/vendor/chartjs/chart.umd.js"></script>
+<script src="/static/v2/vendor/leaflet/leaflet.js"></script>
 <style>
 :root{--bg:#050b16;--panel:#101d30;--panel2:#13253a;--stroke:#25415a;--text:#eaf6ff;--muted:#9db7cb;--cyan:#67e8f9;--green:#5ce4b2;--amber:#ffd078;--red:#ff8794;--blue:#91a4ff}
 *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:radial-gradient(circle at 70% -5%,#163455 0,transparent 35%),var(--bg);color:var(--text);font:14px Inter,Arial,sans-serif}a{color:inherit;text-decoration:none}

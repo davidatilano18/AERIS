@@ -138,7 +138,8 @@ def main(argv=None):
                 desborde = nav.evaluar('document.documentElement.scrollWidth > window.innerWidth + 1')
                 captura = nav.cmd('Page.captureScreenshot', {'format': 'png', 'captureBeyondViewport': True,
                                   'clip': {'x': 0, 'y': 0, 'width': ancho, 'height': min(altura, 16000), 'scale': 1}})
-                archivo = args.salida / f"{ruta.strip('/').replace('/', '_') or 'raiz'}_{nombre}.png"
+                limpio = ''.join(c if c.isalnum() or c in '-_' else '_' for c in ruta.strip('/')) or 'raiz'
+                archivo = args.salida / f'{limpio}_{nombre}.png'
                 archivo.write_bytes(base64.b64decode(captura['data']))
                 informe[f'{ruta} [{nombre}]'] = {'captura': str(archivo), 'altura': altura,
                                                  'desborde_horizontal': desborde, 'problemas': problemas(nav.eventos)}
