@@ -18,6 +18,9 @@ corte y precalcula la portada). Detener: `Ctrl+C` en esa ventana.
   SHA-256 `e3639e93…ac43`).
 - No usar 5060/5061 (Chrome los bloquea). Si 5070 está ocupado: `-Port 5076`.
 
+**En línea:** https://aeris-qro.up.railway.app/inicio (Railway, misma versión y mismo corte; el mapa base
+oscuro se carga solo cuando hay conexión).
+
 **Plan B — AERIS 3.0.1 exacta** (la versión ensayada antes, con su corte original):
 ```powershell
 powershell -ExecutionPolicy Bypass -File C:\Users\MSI_COREi5\AERIS-Demo\scripts\Iniciar-AERIS-Congreso.ps1 -Respaldo

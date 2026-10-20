@@ -12,35 +12,51 @@
   reduced.addEventListener('change', updateMotion); updateMotion();
   const status = document.getElementById('mapStatus');
   const tileButton = document.getElementById('tilesToggle');
-  if(document.body.dataset.offline==='true'){tileButton.disabled=true;tileButton.textContent='Mapa base desactivado · sin conexión';}
+  const offline = document.body.dataset.offline === 'true';
+  if (offline) { tileButton.disabled = true; tileButton.textContent = 'Mapa base desactivado · sin conexión'; }
   if (!window.L) { status.textContent = 'No se pudo cargar el mapa. Usa la lista de estaciones.'; tileButton.disabled = true; return; }
   const stations = JSON.parse(document.getElementById('stationData').textContent);
   const valid = stations.filter(s => Number.isFinite(s.lat) && Number.isFinite(s.lon));
-  const map = L.map('homeMap', {scrollWheelZoom: false, zoomAnimation: false, fadeAnimation: false});
+  const map = L.map('homeMap', {scrollWheelZoom: false, zoomAnimation: true, fadeAnimation: true, zoomSnap: .5});
+  map.attributionControl.setPrefix(false);
   map.attributionControl.addAttribution('Ubicaciones: catálogo OpenAQ · no es un mapa de concentraciones');
-  if (valid.length) map.fitBounds(valid.map(s => [s.lat, s.lon]), {padding: [40, 40], maxZoom: 11, animate: false});
+  const puntos = valid.map(s => [s.lat, s.lon]);
+  // Vistas rápidas: las estaciones metropolitanas están a pocos km entre sí y San Juan del Río a ~50 km.
+  const vistas = {
+    todo: puntos,
+    metro: valid.filter(s => s.lon < -100.2).map(s => [s.lat, s.lon]),
+    sjr: valid.filter(s => s.lon > -100.2).map(s => [s.lat, s.lon]),
+  };
+  const encuadrar = (clave, animar) => {
+    const destino = vistas[clave]?.length ? vistas[clave] : puntos;
+    if (!destino.length) return;
+    // Margen derecho mayor: los nombres se dibujan a la derecha de cada punto.
+    map.fitBounds(destino, {paddingTopLeft: [48, 48], paddingBottomRight: [150, 48], maxZoom: clave === 'todo' ? 11 : 13, animate: animar && !reduced.matches});
+  };
+  if (puntos.length) encuadrar('todo', false);
   else { map.setView([20.6, -100.4], 9); status.textContent = 'No hay ubicaciones verificadas para mostrar. La vista geográfica de referencia no implica estaciones.'; }
-  // Geographic reference only: these lines are coordinates, never a measured surface.
-  const bounds = map.getBounds();
-  for (let lat=Math.ceil(bounds.getSouth()*10)/10;lat<bounds.getNorth();lat+=.1) {
-    L.polyline([[lat,bounds.getWest()],[lat,bounds.getEast()]], {interactive:false,
-      color:'#91c6c7',opacity:.15,weight:.6}).addTo(map);
-    L.marker([lat,bounds.getEast()-.10], {interactive:false,keyboard:false,
-      icon:L.divIcon({className:'coordinate-label',html:lat.toFixed(1)+'° N',iconSize:[45,12],iconAnchor:[0,6]})}).addTo(map);
+  // Retícula de coordenadas: solo sin mapa base. Son coordenadas, nunca una superficie medida.
+  const reticula = L.layerGroup();
+  const bounds = map.getBounds().pad(.5);
+  for (let lat = Math.ceil(bounds.getSouth() * 10) / 10; lat < bounds.getNorth(); lat += .1) {
+    L.polyline([[lat, bounds.getWest()], [lat, bounds.getEast()]], {interactive: false, color: '#91c6c7', opacity: .15, weight: .6}).addTo(reticula);
   }
-  for (let lon=Math.ceil(bounds.getWest()*10)/10;lon<bounds.getEast();lon+=.1) {
-    L.polyline([[bounds.getSouth(),lon],[bounds.getNorth(),lon]], {interactive:false,
-      color:'#91c6c7',opacity:.15,weight:.6}).addTo(map);
+  for (let lon = Math.ceil(bounds.getWest() * 10) / 10; lon < bounds.getEast(); lon += .1) {
+    L.polyline([[bounds.getSouth(), lon], [bounds.getNorth(), lon]], {interactive: false, color: '#91c6c7', opacity: .15, weight: .6}).addTo(reticula);
   }
   const counts = {recent: 0, historical: 0, empty: 0};
+  const marcadores = new Map();
+  const colores = {recent: '#65ead1', historical: '#f2c46d', empty: '#b2c6d1'};
   for (const station of valid) {
     const state = station.records > 0 ? (station.fresh === true ? 'recent' : 'historical') : 'empty';
     counts[state]++;
     const label = {recent: 'Datos recientes (hasta 2 horas)', historical: 'Solo historial', empty: 'Sin registros locales'}[state];
-    const color = {recent: '#65ead1', historical: '#e5bf79', empty: '#b2c6d1'}[state];
-    const marker = L.circleMarker([station.lat, station.lon], {radius: station.sensor_id === 1352686 ? 9 : 6,
-      color, fillColor: color, dashArray: state === 'historical' ? '3 3' : null,
-      fillOpacity: state === 'recent' ? .85 : state === 'historical' ? .2 : 0, weight: 2});
+    const color = colores[state];
+    const radio = station.sensor_id === 1352686 ? 9 : 8;
+    // Halo suave para separar el punto de cualquier fondo; no es interactivo.
+    L.circleMarker([station.lat, station.lon], {radius: radio + 7, stroke: false, fillColor: color, fillOpacity: state === 'empty' ? .08 : .18, interactive: false}).addTo(map);
+    const marker = L.circleMarker([station.lat, station.lon], {radius: radio, color: state === 'empty' ? color : '#06131d', weight: state === 'empty' ? 2.5 : 2,
+      fillColor: state === 'empty' ? '#06131d' : color, fillOpacity: .95});
     const box = document.createElement('div');
     const name = document.createElement('strong'); name.textContent = station.name; box.append(name);
     const place = document.createElement('p'); place.textContent = station.municipality; box.append(place);
@@ -50,14 +66,36 @@
     const link = document.createElement('a'); link.textContent = 'Explorar esta estación →';
     const source = station.sources.some(s => s.source === 'OpenAQ') ? 'OpenAQ' : station.sources[0]?.source || 'OpenAQ';
     link.href = '/inicio/explorar?' + new URLSearchParams({source, station: String(station.sensor_id), period: 'all'}); box.append(link);
-    marker.bindPopup(box); marker.bindTooltip(() => { const label=document.createElement('span'); label.textContent=station.name; return label; }, {className: 'station-label'});
+    marker.bindPopup(box);
+    // Nombre permanente; el CSS lo muestra solo con zoom suficiente para que no se encimen.
+    marker.bindTooltip(station.name.replace(/ \(ubicación \d+\)/, ''), {permanent: true, direction: 'right', offset: [12, 0], className: 'station-tag'});
     marker.addTo(map);
+    marcadores.set(String(station.sensor_id), marker);
     // Circle markers also need explicit keyboard access, not only pointer events.
     const path = marker.getElement(); path.setAttribute('tabindex', '0'); path.setAttribute('role', 'button');
     path.setAttribute('aria-label', `${station.name}, ${station.municipality}. ${label}${station.records ? '. '+station.latest+' UTC' : ''}`);
     path.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); marker.openPopup(); } });
   }
+  const etiquetas = () => map.getContainer().classList.toggle('mostrar-etiquetas', map.getZoom() >= 11.5);
+  map.on('zoomend', etiquetas); etiquetas();
   if (valid.length) status.textContent=`${valid.length} ubicaciones PM2.5: ${counts.recent} recientes, ${counts.historical} solo historial, ${counts.empty} sin registros. Estados al consultar la página; no es un mapa de concentraciones.`;
+  // Vistas rápidas y lista: llevan el mapa a la estación sin salir de la página.
+  for (const boton of document.querySelectorAll('[data-vista]')) {
+    boton.addEventListener('click', () => {
+      document.querySelectorAll('[data-vista]').forEach(b => b.setAttribute('aria-pressed', String(b === boton)));
+      map.closePopup(); encuadrar(boton.dataset.vista, true);
+    });
+  }
+  for (const boton of document.querySelectorAll('.station-focus')) {
+    boton.addEventListener('click', () => {
+      const marker = marcadores.get(boton.dataset.sensor);
+      if (!marker) return;
+      document.querySelectorAll('[data-vista]').forEach(b => b.setAttribute('aria-pressed', 'false'));
+      if (matchMedia('(max-width: 760px)').matches) document.getElementById('homeMap').scrollIntoView({behavior: reduced.matches ? 'auto' : 'smooth', block: 'center'});
+      if (reduced.matches) map.setView(marker.getLatLng(), 13.5, {animate: false}); else map.flyTo(marker.getLatLng(), 13.5, {duration: .8});
+      map.once('moveend', () => marker.openPopup());
+    });
+  }
   // Estaciones meteorológicas observadas (cuadrado): miden el tiempo, no contaminantes.
   fetch('/api/ambiental/v1/estaciones?fuente=noaa-ghcnh', {cache: 'no-store'}).then(r => r.ok ? r.json() : null).then(data => {
     for (const site of data?.estaciones || []) {
@@ -69,20 +107,31 @@
       const note = document.createElement('p'); note.textContent = 'Mide temperatura, humedad, viento y presión. No mide PM2.5.';
       const link = document.createElement('a'); link.href = '#tiempo'; link.textContent = 'Ver el tiempo en El Marqués →';
       box.append(name, place, note, link);
-      marker.bindPopup(box).bindTooltip(site.nombre, {className: 'station-label'}).addTo(map);
+      marker.bindPopup(box).bindTooltip('Aeropuerto (meteorología)', {permanent: true, direction: 'right', offset: [10, 0], className: 'station-tag'}).addTo(map);
     }
     if (data?.estaciones?.length) {
       const key = document.createElement('span'); key.innerHTML = '<i class="key weather-key" aria-hidden="true"></i> Estación meteorológica (no mide contaminantes)';
       document.querySelector('.map-aside .legend')?.append(key);
     }
   }).catch(() => {});
+  // Mapa base: OpenStreetMap con un filtro oscuro y desaturado (CSS) para que los puntos contrasten.
   let tiles;
-  tileButton.addEventListener('click', () => {
-    if (tiles) { map.removeLayer(tiles); tiles = null; tileButton.setAttribute('aria-pressed','false'); tileButton.textContent='Activar mapa base en línea'; status.textContent='Mapa base desactivado. Los puntos y la lista permanecen disponibles.'; return; }
-    tiles = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom: 18, attribution: '© OpenStreetMap contributors'}).addTo(map);
-    tiles.on('tileerror', () => { status.textContent='No se pudo cargar el mapa base. Usa los puntos o la lista de estaciones.'; });
-    tileButton.setAttribute('aria-pressed','true'); tileButton.textContent='Desactivar mapa base'; status.textContent='Mapa base en línea activado; requiere conexión externa.';
-  });
+  const activarBase = () => {
+    tiles = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom: 18, className: 'mapa-base-oscura',
+      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'}).addTo(map);
+    tiles.on('tileerror', () => { status.textContent = 'No se pudo cargar el mapa base. Usa los puntos o la lista de estaciones.'; });
+    map.removeLayer(reticula);
+    tileButton.setAttribute('aria-pressed', 'true'); tileButton.textContent = 'Ocultar mapa base';
+  };
+  const desactivarBase = () => {
+    if (tiles) map.removeLayer(tiles);
+    tiles = null; reticula.addTo(map);
+    tileButton.setAttribute('aria-pressed', 'false'); tileButton.textContent = offline ? 'Mapa base desactivado · sin conexión' : 'Mostrar mapa base';
+  };
+  tileButton.addEventListener('click', () => { tiles ? desactivarBase() : activarBase(); });
+  if (offline) reticula.addTo(map); else activarBase();
+  // El mapa ocupa la altura del panel; Leaflet necesita recalcular al cambiar el tamaño.
+  new ResizeObserver(() => map.invalidateSize()).observe(document.getElementById('homeMap'));
 })();
 
 // Compact municipality navigation; existing station links remain available.

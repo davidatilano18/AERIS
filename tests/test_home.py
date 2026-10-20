@@ -82,7 +82,10 @@ class HomeTests(unittest.TestCase):
                 self.assertIn('prefers-reduced-motion', text)
         text = self.client.get('/inicio').get_data(as_text=True)
         self.assertIn('Saltar al contenido', text)
-        self.assertIn('Ver todas las estaciones', text)
+        # La lista de estaciones queda visible (no en un desplegable) y cada una enfoca el mapa.
+        self.assertIn('aria-label="Estaciones de calidad del aire"', text)
+        self.assertIn('class="station-focus"', text)
+        self.assertIn('data-vista="metro"', text)
 
     def test_clock_must_be_zoned(self):
         with self.assertRaises(ValueError):

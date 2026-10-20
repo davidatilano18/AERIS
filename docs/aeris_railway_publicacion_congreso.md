@@ -1,6 +1,9 @@
 # Publicación en Railway — versión del congreso
 
-Estado al 20/10/2026 (noche): **preparado, no publicado.** Builds de Railway disponibles de nuevo.
+**Publicado el 20/10/2026** en https://aeris-qro.up.railway.app (servicio que sigue la rama
+`aeris-demo-integracion`: cada push redespliega). Corte en `/dataset/corte-32/aeris.db`.
+
+Estado previo (para referencia): **preparado, no publicado.** Builds de Railway disponibles de nuevo.
 CLI 5.63.1 enlazada al servicio AERIS; variables de una preparación anterior (corte 003) ya cargadas:
 **hay que actualizarlas al corte 32** (paso 5). Sin push ni despliegue de AERIS 3.3.
 
