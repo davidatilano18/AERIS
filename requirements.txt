@@ -1,8 +1,7 @@
-Flask
-pandas
-numpy
-scikit-learn
-joblib
-matplotlib
-azure-storage-blob
-gunicorn
+# Entorno completo: web, ingesta y pronóstico. Versiones verificadas con la suite local.
+# La imagen Docker usa solo requirements-web-linux.lock.
+-r requirements-web.txt
+pandas==3.0.6
+numpy==2.5.4
+scikit-learn==1.9.1
+joblib==1.6.0

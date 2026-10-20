@@ -1,0 +1,21 @@
+# LF en el repositorio y en la copia de trabajo: la imagen Docker se construye
+# desde la copia de trabajo y se ejecuta en Linux.
+* text=auto eol=lf
+
+# Scripts nativos de Windows.
+*.ps1 text eol=crlf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Bibliotecas de terceros: bytes exactos, verificados por sha256 en manifest.json.
+static/v2/vendor/** -text
+static/v2/vendor/manifest.json text eol=lf
+
+# Binarios.
+*.png binary
+*.jpg binary
+*.ico binary
+*.db binary
+*.sqlite binary
+*.gz binary
+*.whl binary
