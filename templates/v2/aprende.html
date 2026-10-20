@@ -49,32 +49,44 @@
     <div class="ap-texto">
       <p class="eyebrow">2 · LA ESCALA OFICIAL</p>
       <h2 id="escala-t">De «Buena» a «Extremadamente mala».</h2>
-      <p>México califica el aire con el <strong>Índice AIRE Y SALUD</strong> (NOM-172-SEMARNAT-2023). Para PM2.5 hay cinco categorías, cada una con un nivel de riesgo para la salud. Mueve el control para ver cómo se clasifica una concentración promedio de 24 horas.</p>
+      <p>México usa cinco bandas del <strong>Índice AIRE Y SALUD</strong> (NOM-172-SEMARNAT-2023). La misma cifra significa cosas distintas según el contaminante, la unidad y el periodo de cálculo.</p>
+      <p>Elige un contaminante y prueba una <strong>concentración base diaria</strong>. El simulador no calcula un día a partir de horas: muestra cómo se redondea y clasifica el valor que introduces.</p>
+      <p class="ap-fuente">Referencia de bandas de 2026, también para explorar el historial; no acredita cumplimiento normativo de años anteriores ni ofrece un diagnóstico individual.</p>
     </div>
     <div class="ap-simulador">
-      <label for="apValor" class="ap-sim-etiqueta">Concentración promedio de 24 h</label>
-      <output id="apSalida" for="apValor" class="ap-sim-valor"><span id="apNumero">{{ inicial }}</span> <small>µg/m³</small></output>
-      <input id="apValor" type="range" min="0" max="150" step="0.5" value="{{ inicial }}" aria-describedby="apResultado">
-      <div class="ap-barra" aria-hidden="true">{% for b in bandas %}<span class="b-{{ ['buena','aceptable','mala','muymala','extrema'][loop.index0] }}" style="--ancho:{{ ((b.tope or 150) - (bandas[loop.index0-1].tope if loop.index0 else 0)) / 150 * 100 }}%"></span>{% endfor %}<i id="apMarca"></i><b class="oms" style="--pos:{{ oms / 150 * 100 }}%" title="Guía OMS 24 h"></b></div>
-      <div class="ap-sim-ejes" aria-hidden="true"><span>0</span><span>15</span><span>25</span><span>79</span><span>130</span><span>150</span></div>
+      <p class="ap-sim-aviso" id="apAviso">SIMULADOR EDUCATIVO · El valor elegido no es una medición de Querétaro.</p>
+      <label for="apContaminante" class="ap-sim-etiqueta">Contaminante</label>
+      <select id="apContaminante" aria-describedby="apDescripcion apMetodo">{% for clave, config in simulador.items() %}<option value="{{ clave }}">{{ config.nombre }}</option>{% endfor %}</select>
+      <p id="apDescripcion" class="ap-nota">{{ simulador.pm25.explicacion }}</p>
+      <p id="apMetodo" class="ap-metodo">Método diario: {{ simulador.pm25.metodo }} · {{ simulador.pm25.unidad }}</p>
+      <p id="apComplecion" class="ap-nota">PM2.5 y PM10 requieren al menos 18 horas sin revisión pendiente por día local.</p>
+      <label for="apEntrada" class="ap-sim-etiqueta">Valor de prueba · <span id="apEntradaUnidad">µg/m³</span></label>
+      <input id="apEntrada" type="text" inputmode="decimal" value="0" maxlength="32" autocomplete="off" aria-describedby="apAviso apRedondeo apError">
+      <p id="apError" role="status" class="ap-error" hidden></p>
+      <output id="apSalida" for="apEntrada apValor apContaminante" class="ap-sim-valor"><span id="apNumero">0</span> <small id="apUnidad">µg/m³</small></output>
+      <label for="apValor" class="ap-sim-etiqueta">Ajustar con el deslizador · valor de prueba</label>
+      <input id="apValor" type="range" min="0" max="{{ simulador.pm25.maximo }}" step="{{ simulador.pm25.paso }}" value="0" aria-describedby="apAviso apResultado">
+      <div class="ap-barra" aria-hidden="true" id="apBarra"><i id="apMarca"></i></div>
+      <div class="ap-sim-ejes" aria-hidden="true"><span>0</span><span id="apEjeMax">{{ simulador.pm25.maximo }}</span></div>
       <div id="apResultado" class="ap-resultado" role="status" aria-live="polite">
         <p class="ap-cat"><span id="apCategoria">—</span></p>
-        <p id="apRiesgo">Riesgo —</p>
-        <ul><li id="apNorma">—</li><li id="apOms">—</li></ul>
+        <p id="apRiesgo">Selecciona un valor para explorar la escala.</p>
+        <p id="apRedondeo">Se redondea «mitad hacia arriba» antes de clasificar.</p>
+        <p id="apNorma"></p><p id="apOms"></p>
       </div>
-      <table class="ap-tabla"><caption>Tabla 5 de la NOM-172-SEMARNAT-2023 · PM2.5 · valores desde enero de 2026</caption>
-        <thead><tr><th scope="col">Calidad del aire</th><th scope="col">Riesgo</th><th scope="col">µg/m³</th></tr></thead>
-        <tbody><tr><td><i class="dot b-buena"></i>Buena</td><td>Bajo</td><td>≤ 15</td></tr><tr><td><i class="dot b-aceptable"></i>Aceptable</td><td>Moderado</td><td>15 – 25</td></tr>
-        <tr><td><i class="dot b-mala"></i>Mala</td><td>Alto</td><td>25 – 79</td></tr><tr><td><i class="dot b-muymala"></i>Muy mala</td><td>Muy alto</td><td>79 – 130</td></tr>
-        <tr><td><i class="dot b-extrema"></i>Extremadamente mala</td><td>Extremadamente alto</td><td>&gt; 130</td></tr></tbody></table>
+      <div class="ap-tabla-scroll" role="region" aria-label="Bandas del contaminante seleccionado" tabindex="0"><table class="ap-tabla"><caption id="apTablaTitulo">Tabla 5 de la NOM-172-SEMARNAT-2023 · PM2.5 · referencia 2026</caption>
+        <thead><tr><th scope="col">Calidad del aire</th><th scope="col">Riesgo asociado</th><th scope="col" id="apTablaUnidad">µg/m³</th></tr></thead>
+        <tbody id="apTablaBandas">{% for b in simulador.pm25.bandas %}<tr><td><i class="dot {{ b.clase }}" aria-hidden="true"></i>{{ b.nombre }}</td><td>{{ b.riesgo }}</td><td>{{ b.intervalo }}</td></tr>{% endfor %}</tbody></table></div>
+      <noscript><p class="ap-sinjs">El simulador interactivo requiere JavaScript. Estas son las referencias para los seis contaminantes:</p>{% for clave, config in simulador.items() %}<details><summary>{{ config.nombre }} · {{ config.unidad }}</summary><p>{{ config.explicacion }} Método diario: {{ config.metodo }}. Decimales: {{ config.decimales }}.</p><ul>{% for b in config.bandas %}<li>{{ b.nombre }}: {{ b.intervalo }} {{ config.unidad }}</li>{% endfor %}</ul></details>{% endfor %}</noscript>
     </div>
+    <script id="apContaminantes" type="application/json">{{ simulador|tojson }}</script>
   </section>
 
   <section class="wrap ap-seccion ap-dia" id="un-dia" aria-labelledby="dia-t">
     <div class="ap-texto">
       <p class="eyebrow">3 · CON DATOS REALES</p>
-      <h2 id="dia-t">Cómo se califica un día.</h2>
-      <p>No basta con una hora: la norma usa el <strong>promedio de 24 horas</strong>, contando desde las 00:00. Y exige datos suficientes: al menos el <strong>75 % de las horas, es decir, {{ horas_minimas }} de 24</strong>. AERIS además deja fuera las horas que su revisión automática marcó como sospechosas.</p>
+      <h2 id="dia-t">Un día real de PM2.5.</h2>
+      <p>Este recorrido conserva ejemplos reales de <strong>PM2.5</strong>; no cambia al elegir otro contaminante en el simulador. Para partículas, la norma usa el <strong>promedio de 24 horas</strong>, desde las 00:00, con al menos el <strong>75 % de las horas, es decir, {{ horas_minimas }} de 24</strong>. AERIS excluye del cálculo las horas con revisión pendiente.</p>
       <p>Elige un día real de la base y avanza paso a paso.</p>
     </div>
     {% if ejemplos %}
@@ -121,8 +133,8 @@
     <div class="ap-texto">
       <p class="eyebrow">5 · EL AVISO DE CADA HORA</p>
       <h2 id="hora-t">¿Y el índice que cambia cada hora?</h2>
-      <p>Para avisar a tiempo, el índice que se publica cada hora no espera al día completo: usa un <strong>promedio móvil ponderado de 12 horas</strong> que da más peso a las horas recientes cuando la concentración cambia rápido. Solo se calcula si hay datos en al menos 2 de las 3 horas más recientes.</p>
-      <p>La norma aclara que el riesgo se refiere al promedio de 24 horas y que el promedio móvil es una aproximación preventiva: al final del día pueden no coincidir. AERIS califica días completos con el promedio de 24 h.</p>
+      <p>Para <strong>PM2.5 y PM10</strong>, el reporte horario de la norma usa un <strong>promedio móvil ponderado de 12 horas</strong>, con datos en al menos 2 de las 3 horas más recientes. Es distinto del promedio diario de 24 h.</p>
+      <p>Para O₃, NO₂ y SO₂ el reporte horario usa el promedio de esa hora y el diario su máximo. Para CO se usa el promedio móvil de 8 h y, al cerrar el día, su máximo. El simulador clasifica la concentración base diaria introducida, no implementa NowCast ni un aviso en tiempo real.</p>
     </div>
   </section>
 
@@ -130,7 +142,8 @@
     <div class="ap-texto">
       <p class="eyebrow">6 · CALIDAD DE LOS DATOS</p>
       <h2 id="rev-t">Por qué marcamos datos.</h2>
-      <p>Los sensores pueden fallar. La revisión automática de AERIS marca una hora cuando el valor es <strong>negativo</strong>, cuando supera <strong>100 µg/m³</strong> o cuando cambia <strong>100 µg/m³ o más en una sola hora</strong>. Los ceros se señalan aparte, sin descartarlos.</p>
+      <p>Para <strong>PM2.5</strong>, AERIS marca negativos, valores superiores a <strong>100 µg/m³</strong> y cambios de <strong>100 µg/m³ o más en una hora</strong>. Los ceros se señalan aparte, sin descartarlos.</p>
+      <p>Para <strong>PM10 y gases</strong>, la revisión <strong>gases-v1</strong> señala valores por encima del tope de «Muy mala» y saltos mayores que el tope de «Mala» entre horas adyacentes del mismo contaminante. Son reglas exploratorias de AERIS, no filtros exigidos por la NOM. No se interpola a través de huecos.</p>
       <p>Una marca no significa que el dato esté mal, sino que necesita revisión. Por eso nunca se borra ni se corrige: el valor original se conserva y simplemente no entra al promedio del día.</p>
     </div>
   </section>
@@ -138,7 +151,7 @@
   <section class="wrap ap-fuentes">
     <p class="eyebrow">FUENTES</p>
     <ul>
-      <li>NOM-172-SEMARNAT-2023, Índice AIRE Y SALUD. DOF, 25 de enero de 2024 (Tabla 5 y numeral 5.2.5).</li>
+      <li><a href="https://sidof.segob.gob.mx/notas/docFuente/5715154">NOM-172-SEMARNAT-2023, Índice AIRE Y SALUD. DOF, 25 de enero de 2024</a> (Tablas 2–9; numerales 5.2.4 y 5.2.5).</li>
       <li>NOM-025-SSA1-2021, valores normados para PM10 y PM2.5. DOF, 27 de octubre de 2021.</li>
       <li>Organización Mundial de la Salud, Guías mundiales de calidad del aire, 2021.</li>
       <li>EPA de EE. UU., «Particulate Matter (PM) Basics».</li>

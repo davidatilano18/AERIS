@@ -2,6 +2,7 @@
 import csv
 import hashlib
 import io
+import json
 import re
 import sqlite3
 import unittest
@@ -11,6 +12,7 @@ from pathlib import Path
 import test_dashboard_v2 as legacy
 from aeris_web.datos_abiertos import CONJUNTOS
 from aeris_web.estado import LIMITES, OMS_24H
+from aeris_web.indice import CONTAMINANTES
 
 RAIZ = Path(__file__).resolve().parents[1]
 
@@ -74,10 +76,12 @@ class DatosAprendeTests(unittest.TestCase):
         html = r.get_data(as_text=True)
         for texto in ('id="apValor"', 'NOM-172-SEMARNAT-2023', 'Guías mundiales de calidad del aire', 'id="un-dia"'):
             self.assertIn(texto, html)
-        js = (RAIZ / 'static/v2/js/aprende.js').read_text(encoding='utf-8')
-        topes = [float(x) for x in re.findall(r'tope: (\d+(?:\.\d+)?)', js)]
-        self.assertEqual(topes, [float(x) for x in LIMITES])
-        self.assertIn(f'OMS = {int(OMS_24H)}', js)
+        payload = json.loads(re.search(r'<script id="apContaminantes" type="application/json">(.*?)</script>', html, re.S)[1])
+        for clave, (_, unidad, decimales, topes, metodo) in CONTAMINANTES.items():
+            config = payload[clave]
+            self.assertEqual([b['tope'] for b in config['bandas'][:-1]], list(topes))
+            self.assertEqual((config['unidad'], config['decimales'], config['metodo']), (unidad, decimales, metodo))
+        self.assertIn('El valor elegido no es una medición', html)
         self.assertNotRegex(html, r'<(script|link)[^>]+(src|href)="https?://')
 
 

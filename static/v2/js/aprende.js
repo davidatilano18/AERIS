@@ -1,40 +1,101 @@
 'use strict';
-// AERIS · Aprende: simulador de la escala oficial y recorrido paso a paso de días reales.
-// Los límites son los de la Tabla 5 de la NOM-172-SEMARNAT-2023 (2026) y la guía OMS 2021 de 24 h.
+// AERIS · Educational input, independent from the real PM2.5 walkthrough below.
+// All bands, units, precision and daily methods are serialized from indice.py.
 (() => {
   const $ = id => document.getElementById(id);
-  const BANDAS = [
-    {nombre: 'Buena', riesgo: 'Bajo', tope: 15, clase: 'b-buena'},
-    {nombre: 'Aceptable', riesgo: 'Moderado', tope: 25, clase: 'b-aceptable'},
-    {nombre: 'Mala', riesgo: 'Alto', tope: 79, clase: 'b-mala'},
-    {nombre: 'Muy mala', riesgo: 'Muy alto', tope: 130, clase: 'b-muymala'},
-    {nombre: 'Extremadamente mala', riesgo: 'Extremadamente alto', tope: Infinity, clase: 'b-extrema'},
-  ];
-  const NORMA = 25, OMS = 15, MAXIMO = 150, MINIMAS = 18;
-  // La norma redondea a entero «mitad hacia arriba» antes de clasificar (15.4 -> Buena; 15.5 -> Aceptable).
-  const banda = v => BANDAS.find(b => Math.floor(v + 0.5) <= b.tope);
+  const MINIMAS = 18;
   const fmt = (v, d = 1) => v.toLocaleString('es-MX', {minimumFractionDigits: d, maximumFractionDigits: d});
 
-  // 1) Simulador.
+  // Round the decimal string, not a binary product (e.g. 5.005 * 100).
+  // Only nonnegative, finite concentrations are valid educational inputs.
+  function mitadArriba(raw, digits) {
+    const text = String(raw).trim().replace(',', '.');
+    if (text.length > 32 || !/^(?:\d+(?:\.\d*)?|\.\d+)$/.test(text)) return null;
+    const [whole = '0', fraction = ''] = text.split('.');
+    const scale = 10n ** BigInt(digits);
+    const kept = fraction.padEnd(digits + 1, '0');
+    let units = BigInt(whole || '0') * scale + BigInt(kept.slice(0, digits) || '0');
+    if (Number(kept[digits]) >= 5) units++;
+    if (units > BigInt(Number.MAX_SAFE_INTEGER)) return null;
+    return Number(units) / Number(scale);
+  }
+
+  // 1) Simulator: selection resets to a labelled input of zero, never a reading.
   const control = $('apValor');
-  if (control) {
-    const actualizar = () => {
-      const v = Number(control.value), b = banda(v);
-      $('apNumero').textContent = fmt(v);
+  if (control && $('apContaminantes')) {
+    const configs = JSON.parse($('apContaminantes').textContent);
+    const selector = $('apContaminante'), input = $('apEntrada');
+    const classify = (key, raw) => {
+      const config = configs[key];
+      if (!config) return null;
+      const value = mitadArriba(raw, config.decimales);
+      if (value === null) return null;
+      const band = config.bandas.find(b => b.tope === null || value <= b.tope);
+      return {value, band};
+    };
+    window.AerisAprende = Object.freeze({mitadArriba, classify});
+    function actualizar() {
+      const config = configs[selector.value];
+      const result = classify(selector.value, input.value);
+      input.setAttribute('aria-invalid', String(!result));
+      $('apError').hidden = Boolean(result);
+      $('apError').textContent = result ? '' : 'Escribe un número no negativo, con punto o coma decimal. No uses separadores de miles.';
+      if (!result) {
+        $('apNumero').textContent = '—'; $('apCategoria').textContent = 'Sin clasificación';
+        $('apCategoria').className = ''; $('apRiesgo').textContent = 'El valor de prueba no es válido.';
+        $('apNorma').textContent = ''; $('apOms').textContent = ''; $('apMarca').hidden = true;
+        return;
+      }
+      const {value, band: b} = result;
+      $('apNumero').textContent = fmt(value, config.decimales);
       const cat = $('apCategoria');
       cat.textContent = b.nombre; cat.className = b.clase;
-      $('apRiesgo').textContent = 'Riesgo para la salud: ' + b.riesgo.toLowerCase();
-      $('apNorma').textContent = v <= NORMA
-        ? `Cumple el límite de 24 h de la norma mexicana (${NORMA} µg/m³).`
-        : `Supera en ${fmt(v - NORMA)} µg/m³ el límite de 24 h de la norma mexicana (${NORMA}).`;
-      $('apOms').textContent = v <= OMS
-        ? `Está dentro de la guía de la OMS (${OMS} µg/m³).`
-        : `Es ${fmt(v / OMS)} veces la guía de la OMS (${OMS} µg/m³).`;
-      $('apMarca').style.left = (Math.min(v, MAXIMO) / MAXIMO * 100) + '%';
-      control.setAttribute('aria-valuetext', `${fmt(v)} microgramos por metro cúbico: ${b.nombre}`);
-    };
-    control.addEventListener('input', actualizar);
-    actualizar();
+      $('apRiesgo').textContent = 'Riesgo asociado a esta banda de referencia: ' + b.riesgo.toLowerCase() + '. No es una evaluación personal.';
+      $('apNorma').textContent = `Valor de prueba tras redondear: ${fmt(value, config.decimales)} ${config.unidad}. Método diario: ${config.metodo}.`;
+      if (Number(input.value.replace(',', '.')) > config.maximo) $('apNorma').textContent += ' Fuera del tramo del deslizador; la clasificación sigue usando el valor completo.';
+      $('apOms').hidden = selector.value !== 'pm25';
+      $('apOms').textContent = selector.value === 'pm25' ? 'La guía OMS 2021 de PM2.5 diario es 15 µg/m³; una referencia distinta de las bandas mexicanas.' : '';
+      $('apMarca').hidden = false;
+      $('apMarca').style.left = (Math.min(value, config.maximo) / config.maximo * 100) + '%';
+      control.setAttribute('aria-valuetext', `${control.value} ${config.unidad}, valor de prueba; tras redondear: ${fmt(value, config.decimales)}, ${b.nombre}`);
+    }
+    function seleccionar() {
+      const config = configs[selector.value];
+      control.max = config.maximo; control.step = config.paso; control.value = '0'; input.value = '0';
+      $('apUnidad').textContent = config.unidad; $('apEntradaUnidad').textContent = config.unidad;
+      $('apDescripcion').textContent = config.explicacion;
+      $('apMetodo').textContent = `Método diario: ${config.metodo} · ${config.unidad}`;
+      $('apComplecion').textContent = selector.value === 'co'
+        ? 'Cada ventana usa la hora de cierre y las siete anteriores (también del día previo), con al menos 6 horas. AERIS añade un mínimo diario de 18 horas válidas: es un criterio propio.'
+        : ['o3', 'no2', 'so2'].includes(selector.value)
+          ? 'Se toma el máximo horario del día. AERIS exige además 18 horas válidas para reducir el riesgo de omitir el pico; ese mínimo diario es un criterio propio.'
+          : 'Día local desde las 00:00: al menos 18 de 24 horas. Las horas con revisión pendiente no entran al cálculo de AERIS.';
+      $('apRedondeo').textContent = `Antes de clasificar: ${config.decimales} decimales, redondeo «mitad hacia arriba». El siguiente 5 incrementa la última cifra retenida.`;
+      $('apTablaTitulo').textContent = `Tabla ${config.tabla} de la NOM-172-SEMARNAT-2023 · ${config.nombre} · referencia 2026`;
+      $('apTablaUnidad').textContent = config.unidad;
+      $('apTablaBandas').replaceChildren(...config.bandas.map(b => {
+        const tr = document.createElement('tr');
+        for (const text of [b.nombre, b.riesgo, b.intervalo]) { const td = document.createElement('td'); td.textContent = text; tr.append(td); }
+        const dot = document.createElement('i'); dot.className = 'dot ' + b.clase; dot.setAttribute('aria-hidden', 'true'); tr.firstChild.prepend(dot);
+        return tr;
+      }));
+      let previous = 0;
+      const segments = config.bandas.map(b => {
+        const end = b.tope === null ? config.maximo : b.tope;
+        const segment = document.createElement('span'); segment.className = b.clase;
+        segment.style.setProperty('--ancho', ((end - previous) / config.maximo * 100) + '%');
+        previous = end; return segment;
+      });
+      $('apBarra').replaceChildren(...segments, $('apMarca'));
+      $('apEjeMax').textContent = fmt(config.maximo, config.decimales) + ' ' + config.unidad;
+      actualizar();
+    }
+    control.addEventListener('input', () => { input.value = control.value; actualizar(); });
+    input.addEventListener('input', () => {
+      if (mitadArriba(input.value, configs[selector.value].decimales) !== null) control.value = Math.min(Number(input.value.replace(',', '.')), configs[selector.value].maximo);
+      actualizar();
+    });
+    selector.addEventListener('change', seleccionar); seleccionar();
   }
 
   // 2) Recorrido de un día real.

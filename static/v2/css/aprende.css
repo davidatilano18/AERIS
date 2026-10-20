@@ -22,21 +22,26 @@
 .ap-tamanos figcaption{font-size:13px;color:#a8bfca;margin-top:10px;text-align:center}
 
 .ap-simulador{padding:28px;border:1px solid #2a4a56;border-radius:14px;background:linear-gradient(160deg,#0f2735eb,#081a25eb)}
+.ap-simulador{min-width:0}.ap-simulador select,.ap-simulador input[type=text]{display:block;box-sizing:border-box;width:100%;min-width:0;border:1px solid #5c8190;border-radius:8px;padding:12px;background:#0a202d;color:#eaf7f8;font:inherit;margin:8px 0 14px}
+.ap-sim-aviso{font-size:11px;letter-spacing:.05em;line-height:1.6;color:#8ff0d9;border-left:2px solid #75efd2;padding-left:12px}
+.ap-metodo{font-size:14px;font-weight:600;line-height:1.6;color:#eaf7f8;margin:14px 0 8px}.ap-simulador .ap-nota{margin-bottom:16px}
+.ap-simulador :focus-visible{outline:3px solid #8ff0d9;outline-offset:4px}.ap-error{color:#ffcf9a;font-size:14px;line-height:1.5}.ap-simulador input[aria-invalid=true]{border-color:#ffcf9a}
+.ap-tabla-scroll{max-width:100%;overflow:auto}.ap-tabla td,.ap-tabla th{overflow-wrap:anywhere}.ap-tabla td:last-child{min-width:5.5em}
 .ap-sim-etiqueta{display:block;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#a8bfca}
 .ap-sim-valor{display:block;font-family:var(--font-display);font-size:clamp(64px,7vw,96px);line-height:1;margin:10px 0 16px;color:#fff;font-variant-numeric:tabular-nums}
 .ap-sim-valor small{font-family:var(--font-text);font-size:18px;color:#75efd2}
 .ap-simulador input[type=range]{width:100%;accent-color:#75efd2;height:28px;cursor:pointer}
 .ap-barra{position:relative;display:flex;height:16px;border-radius:999px;overflow:visible;margin-top:8px}
-.ap-barra span{width:var(--ancho);background:var(--c)}.ap-barra span:first-child{border-radius:999px 0 0 999px}.ap-barra span:nth-last-child(3){border-radius:0 999px 999px 0}
+.ap-barra span{width:var(--ancho);background:var(--c)}.ap-barra span:first-child{border-radius:999px 0 0 999px}.ap-barra span:last-of-type{border-radius:0 999px 999px 0}
 .ap-barra i{position:absolute;top:-6px;width:4px;height:28px;margin-left:-2px;border-radius:3px;background:#fff;box-shadow:0 0 0 3px #050f18;transition:left .15s}
 .ap-barra .oms{position:absolute;left:var(--pos);top:22px;width:0;height:0;border:6px solid transparent;border-bottom-color:#cfe3ea;transform:translate(-6px,0)}
 .ap-sim-ejes{position:relative;height:30px;font-size:11px;color:#a8bfca}
 .ap-sim-ejes span{position:absolute;transform:translateX(-50%)}
-.ap-sim-ejes span:nth-child(1){left:0;transform:none}.ap-sim-ejes span:nth-child(2){left:10%}.ap-sim-ejes span:nth-child(3){left:16.67%}
-.ap-sim-ejes span:nth-child(4){left:52.67%}.ap-sim-ejes span:nth-child(5){left:86.67%}.ap-sim-ejes span:nth-child(6){right:0;transform:none}
+.ap-sim-ejes span:first-child{left:0;transform:none}.ap-sim-ejes span:last-child{right:0;transform:none}
 .ap-resultado{margin-top:10px;padding:18px 20px;border-radius:10px;background:#050f1899;border:1px solid #2a4a56}
 .ap-cat{margin:0 0 6px;font-family:var(--font-display);font-size:38px;line-height:1}
 .ap-cat span{color:var(--c,#fff)}
+.ap-resultado .ap-cat{font-size:clamp(28px,4vw,38px);line-height:1.15;margin-bottom:10px}
 .ap-resultado p,.ap-resultado li{font-size:14px;line-height:1.6;color:#cfe3ea;margin:0}
 .ap-resultado ul{margin:10px 0 0;padding-left:18px;display:grid;gap:4px}
 .ap-tabla{width:100%;border-collapse:collapse;margin-top:22px;font-size:13px}
