@@ -16,7 +16,7 @@
   function variableOptions(){
     const s=selectedSite(), active=new Set((s?.variables||[]).filter(v=>v.observaciones>0).map(v=>v.variable_id));
     const available=variables.filter(v=>active.has(v.variable_id));
-    const defaults=['temperatura_aire','humedad_relativa','viento_velocidad',available.some(v=>v.variable_id==='presion_altimetro')?'presion_altimetro':'presion_superficie'];
+    const defaults=['temperatura_aire','humedad_relativa','viento_velocidad','viento_direccion',available.some(v=>v.variable_id==='presion_altimetro')?'presion_altimetro':'presion_superficie'];
     $('weatherVariables').replaceChildren(...available.map(v=>{const label=make('label');const input=document.createElement('input');input.type='checkbox';input.value=v.variable_id;input.checked=defaults.includes(v.variable_id);label.append(input,make('span',v.nombre+' · '+v.unidad));input.addEventListener('change',load);return label;}));
   }
   function clear(){charts.forEach(c=>c.destroy());charts=[];$('weatherCharts').replaceChildren();$('weatherRows').replaceChildren();table=[];shown=0;$('weatherMore').hidden=true;$('weatherCount').textContent='—';$('weatherMobileView').replaceChildren();$('weatherWindow').textContent='—';$('weatherMethod').textContent='Esperando la metodología de esta consulta.';$('weatherAttribution').textContent='Fuente pendiente de consulta.';$('weatherLicense').textContent='Condiciones pendientes de consulta.';}
@@ -37,6 +37,41 @@
     map.setView([site.latitud,site.longitud],10,{animate:false});
     $('weatherMapNote').textContent=model?'Símbolo tramado: coordenada de consulta de un producto de rejilla. No se dibuja una celda sin límites verificados.':'Cuadrado: estación meteorológica instrumental. Mide el tiempo, no PM2.5; no representa todo el municipio.';
     requestAnimationFrame(()=>map.invalidateSize({animate:false}));
+  }
+  // Rosa de vientos descriptiva: frecuencia por sector de 45° con dirección y velocidad del mismo
+  // instante, sin marcas. Las calmas (velocidad 0) se cuentan aparte; no se promedian grados.
+  function windRose(series,modeled,source){
+    const dir=series.viento_direccion,speed=series.viento_velocidad;
+    if(!dir||!speed||!window.Chart)return false;
+    const ok=p=>!p.marca_origen&&!p.fuera_de_rango&&!p.revisada;
+    const speeds=new Map(speed.puntos.filter(ok).map(p=>[p.fecha_observacion_utc||p.fecha_utc,p.valor]));
+    const names=['N','NE','E','SE','S','SO','O','NO'],count=Array(8).fill(0),sum=Array(8).fill(0);let calm=0,total=0;
+    for(const p of dir.puntos.filter(ok)){
+      const v=speeds.get(p.fecha_observacion_utc||p.fecha_utc);if(v===undefined)continue;total++;
+      if(v===0){calm++;continue;}
+      const k=Math.round((p.valor%360)/45)%8;count[k]++;sum[k]+=v;
+    }
+    const moving=total-calm;if(moving<24)return false;
+    const pct=count.map(c=>100*c/moving),max=Math.max(...pct);
+    const card=make('article',undefined,'panel weather-chart-card weather-rose');card.dataset.variable='rosa';
+    const header=make('div',undefined,'panel-head');const heading=make('div');
+    heading.append(make('p',(modeled?'REANÁLISIS / ':'OBSERVACIÓN / ')+source,'eyebrow'),make('h3','Rosa de vientos'));
+    header.append(heading,make('span','% horas','source-badge'));card.append(header);
+    const body=make('div',undefined,'weather-canvas');const canvas=document.createElement('canvas');
+    const top=names[pct.indexOf(max)];
+    canvas.setAttribute('role','img');canvas.setAttribute('aria-label',`Rosa de vientos: ${moving} horas con viento; sector más frecuente ${top} (${number.format(max)}%).`);
+    body.append(canvas);card.append(body);
+    card.append(make('p',`${moving} horas con viento y dirección del mismo reporte. Dirección de donde sopla. Calmas: ${calm} (${number.format(100*calm/total)}%), fuera de los sectores. Sector más frecuente: ${top}.`,'panel-note'));
+    card.append(make('p','Describe esta ventana; no demuestra el transporte de contaminantes ni representa todo el municipio.','panel-note weather-stat'));
+    $('weatherCharts').append(card);
+    const color=modeled?[230,199,137]:[117,239,210];
+    charts.push(new Chart(canvas,{type:'polarArea',data:{labels:names,datasets:[{data:pct,
+      backgroundColor:pct.map(v=>`rgba(${color},${.18+.62*(max?v/max:0)})`),borderColor:`rgb(${color})`,borderWidth:1}]},
+      options:{responsive:true,maintainAspectRatio:false,animation:false,startAngle:-22.5,
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:i=>`${names[i.dataIndex]}: ${number.format(pct[i.dataIndex])}% · ${count[i.dataIndex]} h · media ${count[i.dataIndex]?number.format(sum[i.dataIndex]/count[i.dataIndex]):'—'} m/s`}}},
+        scales:{r:{startAngle:-22.5,grid:{color:'#9bc8c926'},angleLines:{color:'#9bc8c926'},ticks:{color:'#b4cbd4',backdropColor:'transparent',font:{size:9},callback:v=>v+'%'},
+          pointLabels:{display:true,centerPointLabels:true,color:'#d5e6ec',font:{size:11}}}}}}));
+    return true;
   }
   async function load(){
     request?.abort();request=new AbortController();const active=request;
@@ -85,7 +120,8 @@
           borderColor:modeled?'#e6c789':'#75efd2',backgroundColor:modeled?'#e6c789':'#75efd2',borderDash:modeled?[5,3]:[],pointRadius:angular?2:0,pointHoverRadius:4,borderWidth:1.4,tension:0,spanGaps:false}]},options:{responsive:true,maintainAspectRatio:false,animation:false,parsing:false,interaction:{mode:'nearest',intersect:false},plugins:{legend:{display:false},tooltip:{callbacks:{title:items=>date(items[0].parsed.x)+' · Querétaro'}}},scales:{x:{type:'linear',min:start,max:end,grid:{color:'#9bc8c90a'},ticks:{color:'#b4cbd4',maxTicksLimit:4,font:{size:9},callback:value=>new Intl.DateTimeFormat('es-MX',{timeZone:'America/Mexico_City',day:'2-digit',month:'short'}).format(new Date(value))}},y:{min:angular?0:undefined,max:angular?360:undefined,grid:{color:'#9bc8c918'},ticks:{color:'#b4cbd4',font:{size:9}}}}}}));
         else body.replaceChildren(make('p','Gráfica no disponible; los valores siguen en la tabla.'));
       }
-      $('weatherMobileView').replaceChildren(...Object.entries(data.series).map(([id,s])=>new Option(s.nombre+' · '+s.unidad,id)),new Option('Todas las gráficas','all'));
+      const rose=windRose(data.series,modeled,data.fuente.fuente_id);
+      $('weatherMobileView').replaceChildren(...Object.entries(data.series).map(([id,s])=>new Option(s.nombre+' · '+s.unidad,id)),...(rose?[new Option('Rosa de vientos','rosa')]:[]),new Option('Todas las gráficas','all'));
       page();$('weatherCount').textContent=count.toLocaleString('es-MX')+' valores en '+wanted.length+' variables, sin sumar unidades';
       $('weatherStatus').textContent=(modeled?'Reanálisis modelado':'Observaciones meteorológicas')+' · '+site.nombre+' · '+($('weatherAnchor').value==='latest'?'ventana al final del archivo, puede ser antigua.':'ventana referida a hoy, con posible latencia de publicación.');
     }catch(error){if(error.name!=='AbortError'){clear();$('weatherStatus').textContent=error.message+' No se conserva una gráfica anterior como actual.';}}
