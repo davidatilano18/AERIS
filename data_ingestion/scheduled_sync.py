@@ -118,7 +118,8 @@ def main(argv=None):
         options = {}
         if args.replay_audit:
             production = ops.ROOT / 'data/aeris_air_quality.db'
-            require(args.db.resolve() != production.resolve() and not os.path.samefile(args.db, production),
+            require(args.db.resolve() != production.resolve()
+                    and not (production.exists() and os.path.samefile(args.db, production)),
                     'Recorded replay forbidden on original database')
             from .controlled_run import CachedClient
             audit = json.loads(args.replay_audit.read_text(encoding='utf8'))

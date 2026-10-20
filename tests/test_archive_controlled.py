@@ -156,6 +156,10 @@ class ControlledArchiveTests(unittest.TestCase):
         for path in (archive.PRODUCTION,archive.ROOT/'reports/missing.db'):
             with self.assertRaises(ValueError):archive.check_copy(path)
 
+    def test_isolated_copy_accepted_when_production_database_is_absent(self):
+        with patch.object(archive,'PRODUCTION',self.root/'absent_production.db'):
+            self.assertEqual(archive.check_copy(self.db),self.db.resolve())
+
 
 class BundleChecks(unittest.TestCase):
     def test_evidence_corruption_and_manifest_identity_rejected(self):

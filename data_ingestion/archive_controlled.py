@@ -29,7 +29,7 @@ def check_copy(path):
         raise ValueError('Only isolated report copies are enabled in this preparation')
     if not any(p.startswith('tmp_aeris_') for p in path.relative_to(ROOT/'reports').parts[:-1]) or not path.is_file():
         raise ValueError('Existing isolated temporary database required')
-    if path.samefile(PRODUCTION): raise ValueError('Production file alias rejected')
+    if PRODUCTION.exists() and path.samefile(PRODUCTION): raise ValueError('Production file alias rejected')
     return path
 
 
