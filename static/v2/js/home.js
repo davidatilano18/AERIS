@@ -44,7 +44,7 @@
     box.append(dates);
     const link = document.createElement('a'); link.textContent = 'Explorar esta estación →';
     const source = station.sources.some(s => s.source === 'OpenAQ') ? 'OpenAQ' : station.sources[0]?.source || 'OpenAQ';
-    link.href = '/v2?' + new URLSearchParams({source, station: String(station.sensor_id), period: 'all'}); box.append(link);
+    link.href = '/inicio/explorar?' + new URLSearchParams({source, station: String(station.sensor_id), period: 'all'}); box.append(link);
     marker.bindPopup(box); marker.bindTooltip(() => { const label=document.createElement('span'); label.textContent=station.name; return label; }, {className: 'station-label'});
     marker.addTo(map);
     // Circle markers also need explicit keyboard access, not only pointer events.

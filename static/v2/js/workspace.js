@@ -108,9 +108,8 @@
       $('labSummary').textContent=text;$('labChart').setAttribute('aria-label',text);
       $('researchCoverageText').textContent=expected?`${observed.length} de ${expected} horas tienen observaciones. Faltan ${expected-observed.length} horas. ${s.period==='all'?'Se mide solo entre primera y última observación, no la cobertura de un mes o año.':'Se incluyen huecos al inicio y al final de la ventana.'}`:'No existe una ventana con extremos observados para calcular cobertura.';
       table=observed;tablePage();applied=s;$('runComparison').disabled=false;
-      $('labExplorer').href='/v2/datos?'+query;
-      if(s.period==='custom') $('labExplorer').textContent='Explorador: abre todo el historial (filtro UTC local no transferido) ↗';
-      else $('labExplorer').textContent='Abrir selección en el explorador ↗';
+      $('labExplorer').href='/inicio/datos#pm25-horario';
+      $('labExplorer').textContent='Descargar estos datos en CSV ↓';
       if(!observed.length){$('labChartState').textContent='Sin observaciones en esta selección.';return;}
       if(!window.Chart){$('labChartState').textContent='Gráfica no disponible. Consulta la tabla de valores.';return;}
       chart=new Chart($('labChart'),{type:'line',data:{datasets:[{label:'PM2.5 · µg/m³',data:points.map(p=>({x:p.epoch_ms,y:p.gap?null:p.value})),
@@ -159,5 +158,8 @@
   const incoming=new URLSearchParams(location.search);if(catalog.some(s=>String(s.sensor_id)===incoming.get('station')))$('labStation').value=incoming.get('station');
   if(['OpenAQ','OpenAQ-Archive'].includes(incoming.get('source')))$('labSource').value=incoming.get('source');
   if(['24h','7d','30d','all'].includes(incoming.get('period')))$('labPeriod').value=incoming.get('period');
-  load();
+  // /inicio/explorar#comparacion abre «Comparación histórica» y la ejecuta con la selección cargada.
+  Promise.resolve(load()).then(()=>{if(location.hash!=='#comparacion')return;
+    document.querySelector('[data-research="comparison"]')?.click();$('research')?.scrollIntoView();
+    if(!$('runComparison').disabled)$('runComparison').click();});
 })();

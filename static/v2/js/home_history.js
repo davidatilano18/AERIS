@@ -17,7 +17,7 @@
     rows.replaceChildren(); state.hidden=false; state.textContent='Consultando observaciones…';
     box.setAttribute('aria-busy','true'); summary.textContent='Esperando datos de esta estación y fuente.';
     const query = new URLSearchParams({source:source.value, station:station.value, period:'7d'});
-    document.getElementById('historyExplorer').href='/v2/datos?'+new URLSearchParams({source:source.value,station:station.value,period:'all'});
+    document.getElementById('historyExplorer').href='/inicio/explorar?'+new URLSearchParams({source:source.value,station:station.value,period:'all'});
     if (!station.value) { state.textContent='No hay estaciones disponibles para consultar.'; summary.textContent='No se puede interpretar una concentración sin observaciones.'; box.setAttribute('aria-busy','false'); return; }
     try {
       const response = await fetch('/api/v2/observations?'+query, {signal:request.signal,cache:'no-store'});
