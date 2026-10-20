@@ -9,14 +9,14 @@ volumen ni las variables. La CLI de Railway no está instalada en este equipo.
 |---|---|
 | Repositorio | `https://github.com/davidatilano18/AERIS.git` |
 | Rama a subir | `aeris-demo-integracion` (nueva en el remoto; **no** se fusiona con `main`) |
-| Commit congelado | etiqueta local `aeris-congreso-20261021` |
+| Commit congelado | etiqueta local `aeris-congreso-3.0` (AERIS 3.0; la anterior es `aeris-congreso-20261021`) |
 | Constructor | Dockerfile, forzado por `railway.json` (no Railpack) |
 | Arranque | `python railway_start.py` → verifica el corte, baja a UID 10001, `exec gunicorn` |
 | Datos | un solo archivo, `aeris.db`, en el volumen `aeris-volume` montado en `/dataset` |
 | Corte | `ambiental-demo-003`: 106,668,032 bytes, SHA-256 `b9e8c20f9f6ed3884ecdeadc251ace8bc48fa14bfcacfb84b64569d92de210c6`, creado `2026-10-20T16:40:38+00:00`; 12,759 mediciones PM2.5 y 254,485 observaciones ambientales |
 | Archivo local del corte | `C:\Users\MSI_COREi5\AERIS-Claude\reports\beta_snapshots\ambiental-demo-003\aeris.db` (copia idéntica en `AERIS-Demo-datos\corte-20261020\aeris.db`) |
 
-La imagen contiene 62 archivos: web (`app.py`, `wsgi.py`, `aeris_web/`, plantillas, estáticos),
+La imagen contiene 89 archivos (con AERIS 3.0: GSAP, fuentes, Aprende y Datos abiertos): web (`app.py`, `wsgi.py`, `aeris_web/`, plantillas, estáticos),
 `data_ingestion/{__init__,catalog,visibility}.py`, el catálogo público y los archivos de arranque.
 **No** contiene ingesta, sincronizador, tarea programada, `forecasting/`, `models/`, holdout,
 respaldos, `.secrets/` ni bases de datos (`.dockerignore` en lista blanca). En el corte, todas las

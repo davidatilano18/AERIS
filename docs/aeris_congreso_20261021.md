@@ -18,42 +18,52 @@ Abre **http://127.0.0.1:5070/inicio** a los pocos segundos. Detener: `Ctrl+C` en
   SHA-256 `b9e8c20f…e453`); el lanzador verifica el hash e integridad antes de servir.
 - No usar 5060/5061 (Chrome los bloquea). Si 5070 está ocupado: `-Port 5072`.
 
-**Plan B:** capturas de todas las pantallas (escritorio y móvil) en
-`C:\Users\MSI_COREi5\AERIS-Demo-datos\capturas-congreso\`.
-**Plan C:** commit anterior estable `9d26508` (integración sin las mejoras de hoy):
-`git -C C:\Users\MSI_COREi5\AERIS-Demo switch --detach 9d26508`.
+**Plan B:** capturas de AERIS 3.0 (escritorio y móvil) en
+`C:\Users\MSI_COREi5\AERIS-Demo-datos\capturas-congreso-3\` (portada móvil en `inmersiva-movil\`);
+las de la versión anterior siguen en `capturas-congreso\`.
+**Plan C:** volver a la versión anterior a 3.0 (etiqueta `aeris-congreso-previo-3.0`):
+`git -C C:\Users\MSI_COREi5\AERIS-Demo switch --detach aeris-congreso-previo-3.0`, o abrir la portada
+clásica sin cambiar nada: http://127.0.0.1:5070/inicio?experiencia=clasica.
 
-Ensayo previo recomendado (2 min): abrir `/inicio`, bajar hasta «El Marqués vuelve a tener datos»,
-abrir el laboratorio → pestaña **Tiempo**. Pantalla completa del navegador: `F11`.
+**Antes de presentar:** abre http://127.0.0.1:5070/inicio. Si aparece la portada clásica es porque
+ese navegador recuerda la elección: entra una vez a `/inicio?experiencia=inmersiva`. Pantalla
+completa con `F11`. Si el equipo se pone lento, «Pausar movimiento» detiene la animación sin perder nada.
+
+Ensayo previo recomendado (3 min): portada → desliza hasta «¿Cómo está el aire?» → Aprende (mueve el
+simulador y abre «Un día con falla de sensor») → Laboratorio → Datos.
 
 ## 2. Recorrido guiado (6 minutos)
 
-Tesis: **cómo está y cómo ha estado el aire en Querétaro**, medido contra la norma mexicana.
+Tesis: **cómo está y cómo ha estado el aire en Querétaro**, explicado para que cualquiera aprenda a leerlo.
 
 | Tiempo | Pantalla | Qué mostrar | Qué decir |
 |---|---|---|---|
-| 0:00–0:30 | `/inicio`, portada | Botón «¿Cómo está el aire?» | «Queríamos responder una pregunta sencilla con datos oficiales: ¿cómo está el aire que respiramos en Querétaro?» |
-| 0:30–1:45 | **¿Cómo está el aire?** | Veredicto «Mayormente buena»: 96 % de 149 días completos (17 sep–19 oct 2026, 5 estaciones) en calidad Buena, ninguno Mala; 4 % supera la guía OMS. Escala oficial a la derecha | «Calificamos cada día como lo hace la NOM-172: promedio de 24 h con al menos 18 horas. Con la norma mexicana, el aire fue bueno casi todos los días. Con la guía de la OMS, que es más estricta, algunos días no.» |
-| 1:45–2:30 | Barras por estación y «¿Y antes?» | Jun–sep 2025: 81 % Buena, 2 días Mala, 19 % sobre OMS | «Cada estación por separado: no inventamos un promedio estatal. El periodo de 2025 es otra temporada y otra fuente; lo usamos como contexto, no como tendencia.» |
-| 2:30–3:30 | ¿A qué hora se respira peor? + Control de calidad | Picos ~7:00 y ~19:00, mínimo ~14:00 (2.3 veces menos). Un día en revisión | «El aire empeora en la mañana y al anochecer; coincide con las horas de más actividad. Y no todo pico es real: un sensor reportó 304 µg/m³ entre horas de 0; nuestro control de calidad lo detectó y ese día no se califica.» |
-| 3:30–4:30 | Mapa y El Marqués | Estaciones (círculos) y el aeropuerto (cuadrado); temperatura, humedad y viento reales | «El Marqués no tiene estación oficial de calidad del aire; sí tiene datos meteorológicos reales del aeropuerto, que ayudan a entender el contexto.» |
-| 4:30–5:30 | `/inicio/explorar` | Pestaña Aire (estación, periodo, cobertura) y Tiempo (rosa de vientos) | «Cualquiera puede explorar cada estación y ver exactamente qué horas faltan.» |
-| 5:30–6:00 | Cierre | Pregunta abierta y modelo en validación ciega | «El siguiente paso es predecir: el modelo está en una prueba ciega hasta el 19 de noviembre; por rigor no mostramos pronósticos antes.» |
+| 0:00–0:40 | `/inicio`, escena 1 | «AERIS» aparece sobre el cielo; leyenda de las partículas (9.6 µg/m³, Carrillo Puerto, 19 oct) | «Cada partícula en pantalla es proporcional a una medición real de ayer. Queríamos responder algo sencillo: ¿cómo está el aire que respiramos?» |
+| 0:40–1:10 | Desliza (escena 2) | El descenso entre nubes y las tres frases | «Las PM2.5 son unas 30 veces más delgadas que un cabello; por eso no las vemos, pero las respiramos.» |
+| 1:10–2:20 | ¿Cómo está el aire? | «Mayormente buena»: 96 % de 149 días completos en calidad Buena, ninguno Mala; 4 % sobre la guía OMS. Barras por estación. «¿Y antes?»: 81 % en 2025 | «Calificamos cada día como lo hace la NOM-172: promedio de 24 h con al menos 18 horas. Con la norma mexicana el aire fue bueno casi siempre; con la OMS, más estricta, no siempre.» |
+| 2:20–3:30 | **Aprende** (menú) | Mueve el simulador a ~40 µg/m³ (Mala, 2.7 veces la OMS). Abre «Un día con falla de sensor» y avanza los 5 pasos | «Aquí cualquiera aprende a leer el aire. Este día un sensor reportó 304 µg/m³ entre horas de 0: el control de calidad marca esas horas y el día no se califica. Sin ese filtro, habría parecido el peor día del registro.» |
+| 3:30–4:10 | Portada: perfil horario y El Marqués | Picos ~7:00 y ~19:00; meteorología real del aeropuerto | «El aire empeora en la mañana y al anochecer. El Marqués no tiene estación oficial de calidad del aire, pero sí datos meteorológicos reales del aeropuerto.» |
+| 4:10–5:10 | **Laboratorio** | Cambia periodo (cifras se actualizan), pestaña Tiempo y rosa de vientos | «Cualquiera puede explorar estación por estación y ver exactamente qué horas faltan.» |
+| 5:10–5:40 | **Datos** | Las cuatro descargas con su licencia; descarga «PM2.5 diario» | «Todo es abierto: horario, diario con la norma, meteorología y el modelo de la NASA, separado para no confundirlo con mediciones.» |
+| 5:40–6:00 | Cierre | Volver a la portada | «El siguiente paso es predecir: el modelo está en una prueba ciega hasta el 19 de noviembre; por rigor no mostramos pronósticos antes.» |
 
 Si preguntan por qué 25 y no 33: la NOM-025 bajó el límite de 24 h a 25 µg/m³ en 2026; para comparar
 periodos usamos la vara vigente. Con el límite de 2025 (33), los 2 días «Mala» de 2025 serían «Aceptable».
+Si preguntan por la animación: WebGL propio y GSAP, todo local y sin internet; respeta «movimiento
+reducido» y se puede saltar.
 
 ## 3. Funcionalidades terminadas
 
-- Inicio `/inicio`: portada, panorama, mapa con estaciones PM2.5 y estación meteorológica, sección
-  El Marqués (lecturas MMQT + comparación observación/reanálisis con estadísticos), serie PM2.5
-  semanal, pregunta de investigación, municipios. Transiciones de entrada y navegación activa;
-  sin JavaScript o con movimiento reducido todo es visible.
-- Laboratorio `/inicio/explorar`: Aire (PM2.5) y Tiempo (NOAA MMQT, NASA POWER MMQT y Corregidora),
-  filtros solo con variables disponibles, cobertura, medias descriptivas, rosa de vientos, tabla de
-  valores originales con marcas, vista móvil por gráfica. `#tiempo` abre directamente Tiempo.
-- Vistas anteriores intactas: `/v2`, `/v2/datos`, `/inicio/anterior`, `/`.
-- API `/api/ambiental/v1` (fuentes, variables, estaciones, observaciones, cobertura, ingestas).
+- **Portada AERIS 3.0** (predeterminada): cielo y partículas en WebGL proporcionales a un dato real,
+  descenso con scroll, «¿Cómo está el aire?», puertas al laboratorio, territorio y datos. Saltar
+  animación, pausar movimiento y versión clásica disponibles.
+- **Aprende** (`/inicio/aprende`): PM2.5 y µg/m³ a escala, simulador de la escala oficial con norma y
+  OMS, tres días reales paso a paso, NOM-025 frente a OMS, índice horario y revisión de datos.
+- **Laboratorio** (`/inicio/explorar`): mismo diseño 3.0, Aire y Tiempo (NOAA MMQT, NASA POWER),
+  cobertura, rosa de vientos, guía para leer las cifras.
+- **Datos abiertos** (`/inicio/datos`): CSV de PM2.5 horario, PM2.5 diario (NOM-172), meteorología y
+  reanálisis, con diccionario de columnas y licencias.
+- Vistas anteriores intactas: `/v2`, `/v2/datos`, `/inicio/anterior`, `/` (sin dependencias de CDN).
 
 ## 4. Resumen técnico para estudiar
 
