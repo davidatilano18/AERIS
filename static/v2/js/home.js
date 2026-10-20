@@ -32,15 +32,20 @@
     L.polyline([[bounds.getSouth(),lon],[bounds.getNorth(),lon]], {interactive:false,
       color:'#91c6c7',opacity:.15,weight:.6}).addTo(map);
   }
+  const counts = {recent: 0, historical: 0, empty: 0};
   for (const station of valid) {
+    const state = station.records > 0 ? (station.fresh === true ? 'recent' : 'historical') : 'empty';
+    counts[state]++;
+    const label = {recent: 'Datos recientes (hasta 2 horas)', historical: 'Solo historial', empty: 'Sin registros locales'}[state];
+    const color = {recent: '#65ead1', historical: '#e5bf79', empty: '#b2c6d1'}[state];
     const marker = L.circleMarker([station.lat, station.lon], {radius: station.sensor_id === 1352686 ? 9 : 6,
-      color: station.records ? '#65ead1' : '#b2c6d1', fillColor: '#65ead1',
-      fillOpacity: station.records ? .75 : 0, weight: 2});
+      color, fillColor: color, dashArray: state === 'historical' ? '3 3' : null,
+      fillOpacity: state === 'recent' ? .85 : state === 'historical' ? .2 : 0, weight: 2});
     const box = document.createElement('div');
     const name = document.createElement('strong'); name.textContent = station.name; box.append(name);
     const place = document.createElement('p'); place.textContent = station.municipality; box.append(place);
     const dates = document.createElement('p'); dates.textContent = station.records ?
-      `Con registros locales. Último instante: ${station.latest}. No indica frescura ni validación oficial.` : 'Sin observaciones locales. No describe el aire actual.';
+      `${label}. Última medición: ${new Date(station.latest).toLocaleString("es-MX", {timeZone: "America/Mexico_City", dateStyle: "long", timeStyle: "short"})} (Querétaro); ${station.latest} UTC. Disponibilidad, no categoría sanitaria.` : 'Sin observaciones locales. No describe el aire actual.';
     box.append(dates);
     const link = document.createElement('a'); link.textContent = 'Explorar esta estación →';
     const source = station.sources.some(s => s.source === 'OpenAQ') ? 'OpenAQ' : station.sources[0]?.source || 'OpenAQ';
@@ -49,10 +54,10 @@
     marker.addTo(map);
     // Circle markers also need explicit keyboard access, not only pointer events.
     const path = marker.getElement(); path.setAttribute('tabindex', '0'); path.setAttribute('role', 'button');
-    path.setAttribute('aria-label', `${station.name}, ${station.municipality}. ${station.records ? 'Con registros' : 'Sin registros locales'}`);
+    path.setAttribute('aria-label', `${station.name}, ${station.municipality}. ${label}${station.records ? '. '+station.latest+' UTC' : ''}`);
     path.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); marker.openPopup(); } });
   }
-  if (valid.length) status.textContent=`${valid.length} ubicaciones catalogadas. Retícula de coordenadas, sin mapa de concentraciones.`;
+  if (valid.length) status.textContent=`${valid.length} ubicaciones PM2.5: ${counts.recent} recientes, ${counts.historical} solo historial, ${counts.empty} sin registros. Estados al consultar la página; no es un mapa de concentraciones.`;
   // Estaciones meteorológicas observadas (cuadrado): miden el tiempo, no contaminantes.
   fetch('/api/ambiental/v1/estaciones?fuente=noaa-ghcnh', {cache: 'no-store'}).then(r => r.ok ? r.json() : null).then(data => {
     for (const site of data?.estaciones || []) {
