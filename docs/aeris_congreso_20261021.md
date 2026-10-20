@@ -1,8 +1,8 @@
 # AERIS — demostración del congreso (21/10/2026, 9:30)
 
-Rama `aeris-demo-integracion`, worktree `C:\Users\MSI_COREi5\AERIS-Demo`. Integra el frontend de
-Codex (`aeris-home-research`) con la capa ambiental (`aeris-data-expansion`). Solo lectura: no
-ingiere, no migra, no predice.
+Rama `aeris-demo-integracion`, worktree `C:\Users\MSI_COREi5\AERIS-Demo` (AERIS 3.3: seis
+contaminantes, modelo CAMS para El Marqués, Laboratorio de contaminantes). Solo lectura: no ingiere,
+no migra, no predice.
 
 ## 1. Iniciar
 
@@ -10,133 +10,106 @@ ingiere, no migra, no predice.
 powershell -ExecutionPolicy Bypass -File C:\Users\MSI_COREi5\AERIS-Demo\scripts\Iniciar-AERIS-Congreso.ps1
 ```
 
-Abre **http://127.0.0.1:5070/inicio** a los pocos segundos. Detener: `Ctrl+C` en esa ventana.
+Abre **http://127.0.0.1:5070/inicio** cuando el servidor responde (unos 10 s: verifica el hash del
+corte y precalcula la portada). Detener: `Ctrl+C` en esa ventana.
 
-- Sin internet por defecto (`--offline`): bloquea cualquier recurso externo. El mapa usa una retícula
-  de coordenadas; `-ConInternet` permite activar el mapa base de OpenStreetMap.
-- Datos: `C:\Users\MSI_COREi5\AERIS-Demo-datos\corte-20261020\aeris.db` (106.7 MB, solo lectura,
-  SHA-256 `b9e8c20f…e453`); el lanzador verifica el hash e integridad antes de servir.
-- No usar 5060/5061 (Chrome los bloquea). Si 5070 está ocupado: `-Port 5072`.
+- Sin internet por defecto (`--offline`). `-ConInternet` permite el mapa base de OpenStreetMap.
+- Datos: `C:\Users\MSI_COREi5\AERIS-Demo-datos\corte-32-20261020\aeris.db` (603 MB, solo lectura,
+  SHA-256 `e3639e93…ac43`).
+- No usar 5060/5061 (Chrome los bloquea). Si 5070 está ocupado: `-Port 5076`.
 
-**Plan B:** capturas de AERIS 3.0 (escritorio y móvil) en
-`C:\Users\MSI_COREi5\AERIS-Demo-datos\capturas-congreso-3\` (portada móvil en `inmersiva-movil\`);
-las de la versión anterior siguen en `capturas-congreso\`.
-**Plan C:** volver a la versión anterior a 3.0 (etiqueta `aeris-congreso-previo-3.0`):
-`git -C C:\Users\MSI_COREi5\AERIS-Demo switch --detach aeris-congreso-previo-3.0`, o abrir la portada
-clásica sin cambiar nada: http://127.0.0.1:5070/inicio?experiencia=clasica.
+**Plan B — AERIS 3.0.1 exacta** (la versión ensayada antes, con su corte original):
+```powershell
+powershell -ExecutionPolicy Bypass -File C:\Users\MSI_COREi5\AERIS-Demo\scripts\Iniciar-AERIS-Congreso.ps1 -Respaldo
+```
+Corre la etiqueta `aeris-congreso-3.0.1` desde `C:\Users\MSI_COREi5\AERIS-Congreso-301`.
+**Plan C — capturas:** `C:\Users\MSI_COREi5\AERIS-Demo-datos\capturas-32\` (3.3) y `capturas-congreso-3\` (3.0).
 
-**Antes de presentar:** abre http://127.0.0.1:5070/inicio. Si aparece la portada clásica es porque
-ese navegador recuerda la elección: entra una vez a `/inicio?experiencia=inmersiva`. Pantalla
-completa con `F11`. Si el equipo se pone lento, «Pausar movimiento» detiene la animación sin perder nada.
+**Antes de presentar:** abre la portada. Si aparece la clásica, entra una vez a
+`/inicio?experiencia=inmersiva`. Pantalla completa con `F11`. «Pausar movimiento» detiene la animación.
 
-Ensayo previo recomendado (3 min): portada → desliza hasta «¿Cómo está el aire?» → Aprende (mueve el
-simulador y abre «Un día con falla de sensor») → Laboratorio → Datos.
+Ensayo (4 min): portada → «¿Cómo está el aire?» → «¿Qué es lo que empeora el aire?» → El Marqués →
+Aprende (cambia de contaminante) → Laboratorio, pestaña Contaminantes → Datos.
 
-## 2. Recorrido guiado (6 minutos)
+## 2. Recorrido guiado (7 minutos)
 
-Tesis: **cómo está y cómo ha estado el aire en Querétaro**, explicado para que cualquiera aprenda a leerlo.
+Tesis: **cómo está y cómo ha estado el aire en Querétaro, qué lo empeora y dónde no sabemos.**
 
 | Tiempo | Pantalla | Qué mostrar | Qué decir |
 |---|---|---|---|
-| 0:00–0:40 | `/inicio`, escena 1 | «AERIS» aparece sobre el cielo; leyenda de las partículas (9.6 µg/m³, Carrillo Puerto, 19 oct) | «Cada partícula en pantalla es proporcional a una medición real de ayer. Queríamos responder algo sencillo: ¿cómo está el aire que respiramos?» |
-| 0:40–1:10 | Desliza (escena 2) | El descenso entre nubes y las tres frases | «Las PM2.5 son unas 30 veces más delgadas que un cabello; por eso no las vemos, pero las respiramos.» |
-| 1:10–2:20 | ¿Cómo está el aire? | «Mayormente buena»: 96 % de 149 días completos en calidad Buena, ninguno Mala; 4 % sobre la guía OMS. Barras por estación. «¿Y antes?»: 81 % en 2025 | «Calificamos cada día como lo hace la NOM-172: promedio de 24 h con al menos 18 horas. Con la norma mexicana el aire fue bueno casi siempre; con la OMS, más estricta, no siempre.» |
-| 2:20–3:30 | **Aprende** (menú) | Mueve el simulador a ~40 µg/m³ (Mala, 2.7 veces la OMS). Abre «Un día con falla de sensor» y avanza los 5 pasos | «Aquí cualquiera aprende a leer el aire. Este día un sensor reportó 304 µg/m³ entre horas de 0: el control de calidad marca esas horas y el día no se califica. Sin ese filtro, habría parecido el peor día del registro.» |
-| 3:30–4:10 | Portada: perfil horario y El Marqués | Picos ~7:00 y ~19:00; meteorología real del aeropuerto | «El aire empeora en la mañana y al anochecer. El Marqués no tiene estación oficial de calidad del aire, pero sí datos meteorológicos reales del aeropuerto.» |
-| 4:10–5:10 | **Laboratorio** | Cambia periodo (cifras se actualizan), pestaña Tiempo y rosa de vientos | «Cualquiera puede explorar estación por estación y ver exactamente qué horas faltan.» |
-| 5:10–5:40 | **Datos** | Las cuatro descargas con su licencia; descarga «PM2.5 diario» | «Todo es abierto: horario, diario con la norma, meteorología y el modelo de la NASA, separado para no confundirlo con mediciones.» |
-| 5:40–6:00 | Cierre | Volver a la portada | «El siguiente paso es predecir: el modelo está en una prueba ciega hasta el 19 de noviembre; por rigor no mostramos pronósticos antes.» |
+| 0:00–0:40 | `/inicio`, escena 1 | «AERIS» sobre el cielo; leyenda de partículas (dato real de ayer) | «Cada partícula en pantalla es proporcional a una medición real. Queríamos responder algo sencillo: ¿cómo está el aire que respiramos?» |
+| 0:40–1:00 | Desliza | Descenso entre nubes | «Las PM2.5 son unas 30 veces más delgadas que un cabello.» |
+| 1:00–2:00 | ¿Cómo está el aire? | 97 % de 149 días Buena (17 sep–19 oct 2026), ninguno Mala; 4 % sobre la OMS. «¿Y antes?»: sep 2021–sep 2026, 63 % de 3,641 días Buena, 277 Mala, 40 % sobre la OMS | «Ahora, en temporada de lluvias, casi todo es bueno. Pero con cinco años de archivo, uno de cada tres días no lo fue. No es tendencia: son temporadas distintas.» |
+| 2:00–3:10 | ¿Qué es lo que empeora el aire? | 2023–2026, 4,863 días con los seis contaminantes: 49 % Buena, 40 % Aceptable, 11 % Mala. Ranking: ozono 64 %, PM2.5 50 % | «La norma califica cada día con el contaminante que peor esté. En Querétaro, cuando el aire no es bueno, casi siempre es por ozono o partículas finas. El NO₂, el SO₂ y el CO pesan poco.» |
+| 3:10–4:10 | El Marqués (modelo) | Gráfica modelo vs medición; tarjeta: −3.2 µg/m³, 65 % misma categoría, detecta 39 % de días no buenos | «El Marqués no mide PM2.5 desde 2021. Un modelo de Copernicus estima 10 µg/m³, pero en las estaciones de su misma celda subestima y no detecta 6 de cada 10 días no buenos. Por eso no lo presentamos como medición: hace falta un sensor.» |
+| 4:10–5:00 | **Aprende** | Simulador: cambia a ozono y a CO; abre «Un día en revisión» | «Cada contaminante tiene su unidad, su método diario y su redondeo. Y no todo pico es real: las horas imposibles se marcan y el día no se califica.» |
+| 5:00–6:00 | **Laboratorio** → Contaminantes | Ozono de Corregidora en un año; luego CAMS, rotulado «Modelo, no medición» | «Cualquiera puede revisar hora por hora qué se midió y qué falta.» |
+| 6:00–6:40 | **Datos** | Siete descargas; abre «Índice diario» | «Todo es abierto, con licencia y método; el modelo va aparte para no confundirlo con mediciones.» |
+| 6:40–7:00 | Cierre | Portada | «El siguiente paso es predecir: el modelo está en prueba ciega hasta el 19 de noviembre; por rigor no mostramos pronósticos antes.» |
 
-Si preguntan por qué 25 y no 33: la NOM-025 bajó el límite de 24 h a 25 µg/m³ en 2026; para comparar
-periodos usamos la vara vigente. Con el límite de 2025 (33), los 2 días «Mala» de 2025 serían «Aceptable».
-Si preguntan por la animación: WebGL propio y GSAP, todo local y sin internet; respeta «movimiento
-reducido» y se puede saltar.
+## 3. Funcionalidades
 
-## 3. Funcionalidades terminadas
-
-- **Portada AERIS 3.0** (predeterminada): cielo y partículas en WebGL proporcionales a un dato real,
-  descenso con scroll, «¿Cómo está el aire?», puertas al laboratorio, territorio y datos. Saltar
-  animación, pausar movimiento y versión clásica disponibles.
-- **Aprende** (`/inicio/aprende`): PM2.5 y µg/m³ a escala, simulador de la escala oficial con norma y
-  OMS, tres días reales paso a paso, NOM-025 frente a OMS, índice horario y revisión de datos.
-- **Laboratorio** (`/inicio/explorar`): mismo diseño 3.0, Aire y Tiempo (NOAA MMQT, NASA POWER),
-  cobertura, rosa de vientos, guía para leer las cifras.
-- **Datos abiertos** (`/inicio/datos`): CSV de PM2.5 horario, PM2.5 diario (NOM-172), meteorología y
-  reanálisis, con diccionario de columnas y licencias.
-- Vistas anteriores intactas: `/v2`, `/v2/datos`, `/inicio/anterior`, `/` (sin dependencias de CDN).
+- **Portada 3.0** (WebGL + GSAP local): «¿Cómo está el aire?» (PM2.5, NOM-172), «¿Qué es lo que
+  empeora el aire?» (seis contaminantes), El Marqués con el modelo CAMS y su validación, «Cómo
+  trabajamos» (Codex), mapa con tres estados y aviso de brecha en El Marqués.
+- **Aprende**: simulador de los seis contaminantes (bandas, unidad, método, redondeo), días reales.
+- **Laboratorio**: Aire (PM2.5), Tiempo (NOAA MMQT, NASA POWER) y Contaminantes (archivo y CAMS).
+- **Datos abiertos**: PM2.5 horario y diario, índice diario de seis contaminantes, PM10/O₃/NO₂/SO₂/CO
+  horarios, modelo CAMS, meteorología y reanálisis.
 
 ## 4. Resumen técnico para estudiar
 
-**Datos PM2.5.** OpenAQ API v3 (sincronización horaria automática en el equipo local) y OpenAQ
-Archive (jun–sep 2025), guardados como fuentes separadas; red SINAICA de Querétaro. Calidad
-versionada (`aeris_qc_v2`): marca ceros, valores > 100 µg/m³ y saltos ≥ 100 en una hora; nunca
-corrige ni borra; la primera evaluación es inmutable.
+**Fuentes.**
+- *OpenAQ Archive* (red estatal vía SINAICA), 2021–2026: 6,025 archivos diarios verificados por
+  SHA-256. PM2.5 en `mediciones` (88,988 horas nuevas; las 8,737 ya existentes coincidieron); PM10,
+  O₃, NO₂, SO₂ y CO en la capa ambiental (527,877 horas). Unidad original exigida (ppm, µg/m³); unos
+  días de mayo de 2026 con ppb/µg/m³ para gases se descartaron, no se convirtieron. PM10 solo en
+  Carrillo Puerto; Josefa Vergara sin PM2.5 desde 2022.
+- *OpenAQ API v3*: PM2.5 reciente (sincronización horaria local).
+- *CAMS global* vía Open-Meteo (CC BY 4.0, no comercial): modelo de rejilla de 0.4°, desde ago-2022.
+- *NOAA GHCNh MMQT* (METAR) y *NASA POWER* (reanálisis): meteorología.
 
-**Capa ambiental (nueva).**
-- *NOAA GHCNh, MMQT* (Aeropuerto Intercontinental, El Marqués/Colón; DOF 2009): METAR horarios,
-  licencia CC0. Solo reportes METAR (FM-15/FM-16): los SYNOP del mismo archivo daban 29 °C cuando
-  el METAR medía 11 °C. Códigos de calidad del proveedor conservados; vacío = «sin marca», no
-  «validado». Latencia ≈ 2–3 días.
-- *NASA POWER*: reanálisis horario (MERRA-2/GEOS-IT) de rejilla ≈ 0.5° × 0.625°; `time-standard=UTC`;
-  −999 se descarta. Es un modelo, no un sensor.
-- Tablas `amb_*` aditivas: no modifican ninguna tabla existente. Observaciones inmutables (triggers),
-  correcciones posteriores como «revisiones», inserción idempotente, valor y unidad originales,
-  hora UTC y local (America/Mexico_City), procedencia por archivo (SHA-256, ETag).
-- «Resolución horaria» = último reporte METAR de cada hora (no promedio). Desde abril de 2026 NOAA
-  etiqueta casi todos los METAR rutinarios de MMQT como FM-16, por eso no se filtra por tipo.
+**Índice AIRE Y SALUD** (NOM-172-SEMARNAT-2023, Tablas 2–9): PM2.5 y PM10 promedio de 24 h; O₃, NO₂
+y SO₂ máximo horario; CO máximo del promedio móvil de 8 h (≥ 6 horas). ≥ 18 horas válidas por día
+(criterio de AERIS también para los máximos). Promedios en decimal exacto y redondeo «mitad hacia
+arriba»; ventanas en UTC (horario de verano hasta 2022). La peor categoría define el día.
 
-**Comparación medido vs modelado** (7 días, misma coordenada): horas presentes en ambos; sesgo =
-media(obs − modelo); MAE = media |obs − modelo|; r de Pearson. Con 1,098 horas (sep–oct) el sesgo
-fue +1.56 °C, MAE 1.91 °C y r 0.921. El modelo suaviza los máximos diurnos (celda de ~60 km).
+**Revisión automática.** PM2.5: `aeris_qc_v2` (> 100 µg/m³ o salto ≥ 100). Gases y PM10: `gases-v1`
+(sobre el inicio de «Extremadamente mala» o salto mayor que el tope de «Mala»); 136 de 527,868 horas.
+Sensibilidad publicada: sin ella cambiarían 21 días y habría 10 «Muy mala o peor» en vez de 1. Nunca
+se borra; una marca no confirma un error.
 
-**Arquitectura.** Flask + SQLite en solo lectura (`mode=ro`, `query_only`), Chart.js y Leaflet
-locales (sin CDN), Gunicorn en Docker para Railway. La web nunca descarga, migra ni entrena.
+**Modelo CAMS.** Ocho puntos (El Marqués y cada estación) caen en solo tres celdas: El Marqués comparte
+celda con Carrillo Puerto, Félix Osores y Epigmenio González. Validación diaria en esa celda (2,055
+días): sesgo −3.2 µg/m³, r 0.58, 65 % misma categoría, 39 % de días no buenos detectados. No se
+corrige el sesgo ni se califica El Marqués con la norma.
 
-**Machine learning.** Candidato `aeris-pm25-20261017-v1` (1, 6 y 24 h) congelado; prueba ciega del
-19/10 al 19/11/2026. No se modificó ni se muestra; los pronósticos están deshabilitados.
+**Arquitectura.** Flask + SQLite en solo lectura, Chart.js/Leaflet/GSAP locales, Gunicorn en Docker
+para Railway. Resúmenes precalculados al arrancar (≈ 4 s, en segundo plano). 362 pruebas.
+
+**Machine learning.** Candidato `aeris-pm25-20261017-v1` congelado; prueba ciega 19/10–19/11/2026.
 
 **Preguntas probables.**
+- *¿Por qué ozono?* Se forma con sol, NOₓ y compuestos orgánicos; el máximo horario de la tarde
+  supera 0.058 ppm con frecuencia. Los datos no identifican la fuente.
+- *¿Por qué no usar el modelo para El Marqués?* Su celda es la de la zona metropolitana y se equivoca
+  justo en los días que importan.
 - *¿Por qué no un mapa de calor?* Ocho puntos no describen un territorio; interpolar inventaría datos.
-- *¿Por qué El Marqués no tiene PM2.5?* La red estatal en SINAICA tiene 5 estaciones activas, todas
-  en la zona metropolitana; OpenAQ solo tiene 333 horas de El Marqués (sep-2021).
-- *¿Por qué los datos meteorológicos llegan con días de retraso?* Latencia de publicación de NOAA y
-  NASA, no falla de la estación. Se muestra explícitamente.
-- *¿El viento explica la contaminación?* No lo afirmamos: la rosa de vientos describe una ventana;
-  relacionarla con PM2.5 exige una metodología que aún no aplicamos.
+- *¿Por qué 2024 tiene pocos días?* El archivo tiene huecos ese año; las proporciones por año se
+  comparan con cautela.
 
 ## 5. Railway
 
-Estado: **preparado, no desplegado** (sin push ni cambios en el servicio).
-Procedimiento exacto paso a paso: [aeris_railway_publicacion_congreso.md](aeris_railway_publicacion_congreso.md).
-
-- Código: rama `aeris-demo-integracion`. Dockerfile, `requirements-web-linux.lock`, `railway.json`
-  y `railway_start.py` sin cambios; los archivos nuevos (`aeris_web/ambiental.py`, plantillas, JS y
-  CSS) ya entran por los `COPY` existentes. Ninguna dependencia nueva (tzdata ya está en el lock).
-- Datos: `C:\Users\MSI_COREi5\AERIS-Claude\reports\beta_snapshots\ambiental-demo-003\aeris.db`
-  (PM2.5 sanitizado + capa ambiental desde 2025-06-01; fuentes `autorizada=0`).
-- Variables: `AERIS_ENV=beta`, `AERIS_DB_PATH=/dataset/ambiental-demo-003/aeris.db`,
-  `AERIS_SNAPSHOT_SHA256=b9e8c20f9f6ed3884ecdeadc251ace8bc48fa14bfcacfb84b64569d92de210c6`,
-  `AERIS_SNAPSHOT_CREATED_UTC=2026-10-20T16:40:38+00:00`,
-  `AERIS_TRUSTED_HOSTS=localhost,127.0.0.1,healthcheck.railway.app,<dominio>`, `AERIS_PROXY_HOPS=0`
-  (1 solo tras verificar el proxy), `RAILWAY_RUN_UID=0`. **No** definir `OPENAQ_API_KEY`,
-  `AERIS_AMBIENTAL_DB_PATH` ni `AERIS_AMBIENTAL_DIARIO`.
-- Validación local en perfil Railway (`scripts/validate_ambiental_railway.py`): 19 rutas en 200,
-  POST → 405, host no confiable → 400, hash sin cambios, sin código de ingesta/modelos en la imagen.
-  **Pendiente:** primera ejecución real Linux/Gunicorn (no hay Docker ni WSL en este equipo).
-- Publicación (cuando se autorice): push de la rama → servicio Railway con volumen en `/dataset` →
-  `railway volume files upload <carpeta del corte> /ambiental-demo-003` → variables → deploy →
-  `/health/ready` → `railway_acceptance.py` por SSH. Detalle en
-  `docs/aeris_railway_deployment_readiness.md` y `docs/aeris_capa_ambiental.md` §5c.
+Estado: **preparado, no desplegado.** Builds de Railway ya disponibles; falta autorización para push
+y despliegue. Procedimiento: [aeris_railway_publicacion_congreso.md](aeris_railway_publicacion_congreso.md).
+El corte 32 pesa 603 MB (antes 107 MB): la subida al volumen tarda más; validador local correcto
+(`scripts/validate_ambiental_railway.py`, 98 archivos en la imagen).
 
 ## 6. Limitaciones conocidas
 
-- El corte de datos es del 20/10/2026 10:39 (Querétaro); no se actualiza durante la demostración.
-  Las vistas «últimos 7 días» se calculan respecto a la hora actual: el 21/10 mostrarán ~23 horas
-  sin datos al final (posteriores al corte) y menor cobertura. Es correcto y conviene decirlo: «el
-  corte es de ayer; no presentamos datos viejos como actuales». La sección El Marqués y el
-  laboratorio de Tiempo usan la ventana al final de lo publicado y no se ven afectados.
-- MMQT termina el 18/10 03:41 UTC por latencia de NOAA; NASA POWER el 18/10 23:00 UTC.
-- La meteorología no mide contaminantes ni representa todo el municipio.
-- La actualización diaria ambiental está implementada pero **desactivada** y sin conectar a la
-  tarea horaria; la base de producción no tiene la capa ambiental.
+- Corte del 20/10/2026; no se actualiza durante la demostración.
+- Las bandas 2026 se aplican a todos los años para comparar con una vara; no es cumplimiento retroactivo.
+- Cobertura desigual por estación, contaminante y año; los resúmenes no son promedios estatales.
+- `gases-v1` impide por construcción ver «Extremadamente mala» en gases y PM10 (sensibilidad publicada).
+- La meteorología y el modelo no miden contaminantes en sitio.
 - Linux/Gunicorn real sin probar (solo perfil simulado en Windows).
