@@ -14,7 +14,7 @@ from pathlib import Path
 
 from .. import operations as ops
 from ..production_preflight import sha, snapshot
-from . import almacen, ghcnh, nasa_power
+from . import almacen, ghcnh, nasa_power, open_meteo_cams
 from .descargas import FalloFuente, SinPublicacion, descargar
 from .esquema import conectar, exigir_base_permitida, tablas, version
 
@@ -87,18 +87,18 @@ def estacion_ghcnh(conn, ingesta, estacion, desde, ahora, bajar, crudos, total):
     return detalle
 
 
-def estacion_power(conn, ingesta, estacion, desde, ahora, bajar, crudos, total):
+def estacion_power(conn, ingesta, estacion, desde, ahora, bajar, crudos, total, conector=nasa_power):
     eid, _, latitud, longitud = estacion
     detalle = {'bloques': []}
     maximo = None
     inicio = desde.replace(hour=0, minute=0, second=0, microsecond=0)
     while inicio < ahora:
         fin = min(inicio + BLOQUE_POWER, ahora)
-        r = bajar(nasa_power.url(latitud, longitud, inicio, fin))
-        ruta = guardar_crudo(crudos, nasa_power.FUENTE, r, '.json')
+        r = bajar(conector.url(latitud, longitud, inicio, fin))
+        ruta = guardar_crudo(crudos, conector.FUENTE, r, '.json')
         with conn:
             almacen.registrar_archivo(conn, ingesta, r, ruta)
-        registros, resumen = nasa_power.interpretar(r.contenido, eid, latitud, longitud, desde, ahora)
+        registros, resumen = conector.interpretar(r.contenido, eid, latitud, longitud, desde, ahora)
         conteos = almacen.guardar(conn, ingesta, registros, r.sha256, ahora)
         sumar(total, conteos)
         detalle['bloques'].append({'desde': almacen.iso_utc(inicio), 'hasta': almacen.iso_utc(fin),
@@ -111,7 +111,12 @@ def estacion_power(conn, ingesta, estacion, desde, ahora, bajar, crudos, total):
     return detalle
 
 
-CONECTORES = {ghcnh.FUENTE: estacion_ghcnh, nasa_power.FUENTE: estacion_power}
+def estacion_cams(*args):
+    # Mismo recorrido por bloques que POWER (consulta por punto y rango de fechas).
+    return estacion_power(*args, conector=open_meteo_cams)
+
+
+CONECTORES = {ghcnh.FUENTE: estacion_ghcnh, nasa_power.FUENTE: estacion_power, open_meteo_cams.FUENTE: estacion_cams}
 
 
 def sincronizar_fuente(conn, fuente_id, ahora, desde_inicial=None, bajar=descargar, crudos=None, rellenar=False):

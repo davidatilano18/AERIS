@@ -45,6 +45,20 @@ FUENTES = {
                  'El PM2.5 del mismo archivo se guarda en la tabla de mediciones existente para no duplicarlo. '
                  'La hora se conserva tal como la reporta el archivo, normalizada a UTC.',
     },
+    'open-meteo-cams': {
+        'nombre': 'Open-Meteo Air Quality API (CAMS global)',
+        'organizacion': 'Open-Meteo; modelo del Copernicus Atmosphere Monitoring Service (ECMWF)',
+        'url': 'https://air-quality-api.open-meteo.com/v1/air-quality',
+        'documentacion_url': 'https://open-meteo.com/en/docs/air-quality-api',
+        'licencia': 'CC BY 4.0 (Open-Meteo, uso no comercial de la API gratuita); datos CAMS con atribución a Copernicus',
+        'atribucion': 'Generado con información del Copernicus Atmosphere Monitoring Service (CAMS), '
+                      'servida por Open-Meteo.com (CC BY 4.0); procesado por AERIS',
+        'tipo_producto': 'modelo',
+        'metodo_acceso': 'HTTPS sin clave; JSON con timezone=GMT y domains=cams_global',
+        'notas': 'Pronóstico del modelo global CAMS (rejilla de 0.4°, salida cada 3 h interpolada a horaria) '
+                 'encadenado por Open-Meteo desde agosto de 2022. Estimación de modelo, no medición local. '
+                 'Validado por AERIS contra las estaciones de la red: subestima el PM2.5 diario.',
+    },
 }
 
 # Estaciones de la red de calidad del aire (ubicaciones OpenAQ verificadas en data/openaq_stations.json).
@@ -97,6 +111,19 @@ for _loc, _sensor, _nombre, _municipio, _lat, _lon in _RED:
         'municipio_nota': 'Estación de la red de calidad del aire; representa su entorno, no todo el municipio.',
         'latitud': _lat, 'longitud': _lon, 'elevacion_m': None, 'tipo_sitio': 'estacion', 'resolucion_espacial': 'punto',
         'metadatos': {'location_id': _loc, 'sensor_pm25': _sensor},
+    }
+
+# Puntos del modelo CAMS: El Marqués (ubicación de la estación histórica, sin datos desde 2021) y uno por
+# estación con PM2.5 para validar el modelo contra la medición en el mismo lugar.
+for _loc, _sensor, _nombre, _municipio, _lat, _lon in _RED:
+    _clave = 'marques' if _loc == 235221 else str(_loc)
+    ESTACIONES[f'cams:{_clave}'] = {
+        'fuente_id': 'open-meteo-cams', 'id_externo': f'{_lat:.6f},{_lon:.6f}',
+        'nombre': f'Modelo CAMS · {_nombre}', 'municipio': _municipio,
+        'municipio_nota': 'Estimación de modelo para el punto de la estación; representa una celda de unos 45 km.',
+        'latitud': _lat, 'longitud': _lon, 'elevacion_m': None, 'tipo_sitio': 'punto_modelo',
+        'resolucion_espacial': 'rejilla CAMS global de 0.4°',
+        'metadatos': {'comparar_con': f'openaq:{_loc}'},
     }
 
 # Rangos físicos amplios para Querétaro (~1,900 m): marcan, nunca corrigen ni eliminan.

@@ -83,7 +83,7 @@ class EsquemaTests(Base):
         with self.conn() as conn:
             self.assertEqual(esquema.migrar(conn), 2)
             conn.execute('CREATE TABLE ajena (x)')
-            self.assertEqual(conn.execute('SELECT COUNT(*) FROM amb_estaciones').fetchone()[0], 11)  # MMQT, 2 celdas POWER y 8 de la red
+            self.assertEqual(conn.execute('SELECT COUNT(*) FROM amb_estaciones').fetchone()[0], 19)  # MMQT, 2 celdas POWER, 8 de la red y 8 puntos CAMS
             self.assertEqual(conn.execute('SELECT SUM(autorizada) FROM amb_fuentes').fetchone()[0], 0)
             esquema.revertir(conn)
             self.assertEqual(esquema.tablas(conn), {'ajena'})
@@ -421,9 +421,9 @@ class ApiTests(Base):
     def test_catalogos(self):
         fuentes = self.get('fuentes').get_json()['fuentes']
         self.assertEqual({f['fuente_id']: f['tipo_producto'] for f in fuentes},
-                         {'nasa-power': 'reanalisis', 'noaa-ghcnh': 'observacion', 'openaq-archivo': 'observacion'})
+                         {'nasa-power': 'reanalisis', 'noaa-ghcnh': 'observacion', 'open-meteo-cams': 'modelo', 'openaq-archivo': 'observacion'})
         estaciones = self.get('estaciones?municipio=El%20Marqu%C3%A9s').get_json()['estaciones']
-        self.assertEqual({e['estacion_id'] for e in estaciones}, {EST, 'power:mmqt', 'openaq:235221'})
+        self.assertEqual({e['estacion_id'] for e in estaciones}, {EST, 'power:mmqt', 'openaq:235221', 'cams:marques'})
         self.assertIn('temperatura_aire', {v['variable_id'] for v in self.get('variables').get_json()['variables']})
         self.assertEqual(self.get('ingestas').get_json()['ingestas'][0]['estado'], 'exito')
 

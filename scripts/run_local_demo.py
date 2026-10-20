@@ -79,6 +79,8 @@ def main():
         parser.error('Use a local port between 1024 and 65535')
     app = build_app(args.manifest, args.offline)
     print('aeris_demo_verified read_only=true ingestion=false predictions=false', flush=True)
+    from aeris_web import precalentar
+    precalentar(app)
     app.run(host='127.0.0.1', port=args.port, debug=False, use_reloader=False)
 
 

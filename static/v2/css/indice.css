@@ -19,3 +19,12 @@
   .indice-year{grid-template-columns:3em 1fr}
   .indice-year small{grid-column:2;text-align:left}
 }
+
+/* Bloque del modelo CAMS para El Marqués. */
+.modelo{margin-top:64px}
+.modelo-cifras{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr));gap:18px;margin:14px 0 6px}
+.modelo-cifras div{border-top:1px solid #9bc8c933;padding-top:10px}
+.modelo-cifras dt{font-size:.8rem;opacity:.7}
+.modelo-cifras dd{margin:4px 0;font-size:1.9rem;font-variant-numeric:tabular-nums}
+.modelo-cifras dd small{font-size:.9rem;opacity:.7}
+.modelo-cifras p{margin:0;font-size:.82rem;opacity:.75;line-height:1.45}

@@ -119,6 +119,7 @@
     </article>
   </div>
   {% include 'v2/home_indice.html' %}
+  {% include 'v2/home_modelo.html' %}
   <script id="estadoPerfiles" type="application/json">{{ estado.perfiles|tojson }}</script>
 </section>
 {% endif %}
@@ -200,6 +201,7 @@
 <script src="{{ url_for('static',filename='v2/js/home_history.js') }}" defer></script>
 <script src="{{ url_for('static',filename='v2/js/home_tiempo.js') }}" defer></script>
 <script src="{{ url_for('static',filename='v2/js/home_estado.js') }}" defer></script>
+<script src="{{ url_for('static',filename='v2/js/home_modelo.js') }}" defer></script>
 {% if inmersiva %}<script src="{{ url_for('static',filename='v2/vendor/gsap/gsap.min.js') }}" defer></script>
 <script src="{{ url_for('static',filename='v2/vendor/gsap/ScrollTrigger.min.js') }}" defer></script>
 <script src="{{ url_for('static',filename='v2/vendor/gsap/SplitText.min.js') }}" defer></script>

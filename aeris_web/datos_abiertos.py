@@ -85,6 +85,14 @@ CONJUNTOS = {
         'licencia': 'Términos de SINAICA (atribución requerida) y de OpenAQ. Cita: «Datos de OpenAQ, red SINAICA; procesados por AERIS».',
         'fuente_id': 'openaq-archivo',
     },
+    'modelo-cams': {
+        'titulo': 'PM2.5 y PM10 del modelo CAMS', 'tipo': 'Modelo (no es medición local)',
+        'descripcion': 'Estimación horaria del modelo global CAMS para El Marqués y para el punto de cada estación de la red '
+                       '(para validarlo). Subestima el PM2.5 medido; no sustituye a un sensor.',
+        'origen': 'Copernicus Atmosphere Monitoring Service (CAMS global), servido por Open-Meteo Air Quality API',
+        'licencia': 'CC BY 4.0, uso no comercial. Cita: «Copernicus Atmosphere Monitoring Service, vía Open-Meteo.com; procesado por AERIS».',
+        'fuente_id': 'open-meteo-cams',
+    },
     'meteorologia-mmqt': {
         'titulo': 'Meteorología observada · Aeropuerto MMQT', 'tipo': 'Observación',
         'descripcion': 'Reportes METAR del Aeropuerto Intercontinental de Querétaro (El Marqués): temperatura, humedad, viento, presión y visibilidad.',
@@ -102,16 +110,16 @@ CONJUNTOS = {
 }
 COLUMNAS_AMBIENTALES = [
     ('estacion_id', 'Identificador AERIS de la estación o celda'), ('estacion', 'Nombre'),
-    ('municipio', 'Municipio'), ('tipo_producto', 'observacion o reanalisis'),
+    ('municipio', 'Municipio'), ('tipo_producto', 'observacion, reanalisis o modelo'),
     ('latitud', 'Grados decimales'), ('longitud', 'Grados decimales'),
     ('variable', 'Identificador de la variable'), ('unidad', 'Unidad canónica'),
     ('fecha_utc', 'Instante ISO 8601 en UTC'), ('fecha_local', 'Hora de Querétaro con desfase'),
     ('valor', 'Valor en la unidad canónica'), ('valor_original', 'Texto original de la fuente'),
     ('unidad_original', 'Unidad original'), ('periodo', 'instantaneo (METAR) o PT1H (valor horario)'),
-    ('tipo_reporte', 'FM-15, FM-16, POWER-horario u OpenAQ-Archive'), ('calidad_origen', 'Código de calidad del proveedor; vacío = sin marca'),
+    ('tipo_reporte', 'FM-15, FM-16, POWER-horario, OpenAQ-Archive o CAMS-global'), ('calidad_origen', 'Código de calidad del proveedor; vacío = sin marca'),
     ('marca_origen', '1 si el proveedor lo marcó'), ('fuera_de_rango', '1 si sale del rango físico de AERIS'),
 ]
-for _clave in ('meteorologia-mmqt', 'reanalisis-nasa-power', 'contaminantes-horario'):
+for _clave in ('meteorologia-mmqt', 'reanalisis-nasa-power', 'contaminantes-horario', 'modelo-cams'):
     CONJUNTOS[_clave]['columnas'] = COLUMNAS_AMBIENTALES
 
 
@@ -219,7 +227,7 @@ def pagina():
         rango = conn.execute("SELECT MIN(fecha_utc),MAX(fecha_utc) FROM mediciones WHERE contaminante='pm25'").fetchone()
     conteos['pm25-diario'] = None
     hay_amb = ambiental.is_file() and tiene_tabla(ambiental, 'amb_observaciones')
-    for clave in ('meteorologia-mmqt', 'reanalisis-nasa-power', 'contaminantes-horario'):
+    for clave in ('meteorologia-mmqt', 'reanalisis-nasa-power', 'contaminantes-horario', 'modelo-cams'):
         disponibles[clave] = hay_amb
         if hay_amb:
             with closing(connect_readonly(ambiental)) as conn:
