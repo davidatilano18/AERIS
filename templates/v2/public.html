@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="es-MX">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#102d40">
+  <title>AERIS · Explora el aire de Querétaro</title>
+  <link rel="icon" href="{{ url_for('logo') }}" type="image/png">
+  <link rel="stylesheet" href="{{ url_for('static', filename='v2/vendor/leaflet/leaflet.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='v2/css/public.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='v2/css/accessibility.css') }}">
+</head>
+<body>
+{% include 'v2/snapshot_notice.html' %}
+<a class="skip-link" href="#contenido">Saltar al contenido</a>
+<header class="site-header"><div class="shell header-inner">
+  <a class="brand" href="{{ url_for('dashboard_v2.index') }}" aria-label="AERIS, inicio ciudadano"><span class="brand-mark" aria-hidden="true">A<span>↗</span></span><span>AERIS<small>INTELIGENCIA AMBIENTAL</small></span></a>
+  <nav aria-label="Navegación principal"><a class="current" href="{{ url_for('dashboard_v2.index') }}" aria-current="page">Ciudadano</a><a href="#inteligencia">Inteligencia <span class="nav-note">en desarrollo</span></a><a id="explorerLink" href="{{ url_for('dashboard_v2.explorer') }}">Explorador de datos <span aria-hidden="true">↗</span></a></nav>
+</div></header>
+<main id="contenido" tabindex="-1" data-api="{{ url_for('dashboard_v2.public_observations') }}">
+  <section class="hero"><div class="shell hero-grid"><div>
+    <p class="eyebrow light">QUERÉTARO · CIENCIA PARA ENTENDER NUESTRO ENTORNO</p>
+    <h1>El aire que compartimos.<br><em>Los datos para entenderlo.</em></h1>
+    <p class="hero-copy">Explora lo que registran las estaciones, cuándo se midió y qué información nos falta. Sin perder de vista los límites de cada dato.</p>
+    <a class="hero-action" href="#tu-estacion">Explora tu estación <span aria-hidden="true">↓</span></a>
+  </div><aside class="hero-note" aria-label="Qué observa AERIS"><span class="orbit" aria-hidden="true">◎</span><p class="eyebrow light">LO QUE OBSERVAMOS</p><h2>Partículas pequeñas.<br>Un contexto más grande.</h2><p>PM2.5 son partículas muy pequeñas suspendidas en el aire. Aquí mostramos su concentración, no un diagnóstico de salud.</p><span class="outline-tag">Mediciones reales · Fuentes identificadas</span></aside></div></section>
+  <div class="shell page-content">
+    <section class="selection card" id="tu-estacion" aria-labelledby="selectionTitle">
+      <div class="section-heading"><div><p class="eyebrow">01 / TU PUNTO DE PARTIDA</p><h2 id="selectionTitle">¿Qué sabemos del aire cerca de ti?</h2></div><button class="button secondary" id="refresh" type="button">Actualizar vista <span aria-hidden="true">↻</span></button></div>
+      <form id="filters" class="selectors" aria-label="Elige dónde y cuándo explorar">
+        <label for="municipality">Elige tu municipio<select id="municipality" aria-describedby="selectionHelp"><option value="all">Todos los municipios disponibles</option></select></label>
+        <label for="station">Estación de medición<select id="station" name="station" aria-describedby="selectionHelp"><option value="all">Elige una estación</option></select></label>
+        <label for="period">Periodo para la gráfica<select id="period" name="period"><option value="24h">Últimas 24 horas completas</option><option value="7d" selected>Últimos 7 días</option><option value="30d">Últimos 30 días</option><option value="all">Historial de esta fuente</option></select></label>
+        <input id="source" name="source" type="hidden" value="OpenAQ">
+      </form>
+      <p class="selection-note" id="selectionHelp">Una estación mide en un punto: <strong>no representa necesariamente todo el municipio ni tu domicilio.</strong> Huimilpan aún no tiene sensores en nuestro catálogo seleccionado. Cambiar una selección actualiza la vista, sin mover el foco.</p>
+      <p id="dataStatus" class="status" role="status" aria-live="polite">Consultando la base local…</p>
+    </section>
+    <div id="error" class="error" role="alert" hidden></div>
+    <div id="observedContent" aria-busy="true">
+      <section class="reading-grid" aria-label="Última medición y su contexto">
+        <article class="card reading"><div class="section-heading"><p class="eyebrow">02 / UNA MEDICIÓN CON CONTEXTO</p><span id="readingState" class="badge">Elige una estación</span></div>
+          <h2 id="readingTitle">¿Qué registró esta estación?</h2>
+          <div class="value-line"><strong id="latestValue">—</strong><span>µg/m³<small>Concentración de PM2.5</small></span></div>
+          <p id="readingMessage" class="reading-message">Selecciona una estación para conocer su última medición disponible.</p>
+          <dl class="reading-details"><div><dt>Estación</dt><dd id="stationName">Por seleccionar</dd></div><div><dt>Cuándo se midió · hora de Querétaro</dt><dd id="measuredAt">—</dd></div><div><dt>Hace cuánto se midió</dt><dd id="ageValue">—</dd></div><div><dt>Fuente del registro</dt><dd id="sourceLabel">—</dd></div></dl>
+          <p id="qualityNote" class="footnote">Una revisión automática no equivale a validación oficial.</p>
+        </article>
+        <aside class="card available"><p class="eyebrow">EL PASADO TAMBIÉN CUENTA</p><h2>¿Buscas otras fechas?</h2><p>Que no haya datos recientes no significa que no exista una historia por explorar.</p><div id="historyOptions" class="history-options"><p>Elige una estación para ver sus fechas disponibles.</p></div><div id="marquesHistory" class="history-callout" hidden><strong>El Marqués tiene historia</strong><p id="marquesNote"></p><button id="openMarques" class="text-button" type="button">Explorar sus registros históricos <span aria-hidden="true">→</span></button></div></aside>
+      </section>
+      <section class="card history" aria-labelledby="chartTitle">
+        <div class="section-heading"><div><p class="eyebrow">03 / LOS CAMBIOS EN EL TIEMPO</p><h2 id="chartTitle">¿Cómo ha cambiado lo que se midió?</h2><p id="chartContext">Elige una estación. Cada punto será una medición real.</p></div><span id="chartSource" class="badge">Fuentes separadas</span></div>
+        <div id="historicalNotice" class="historical-notice" hidden>Estás consultando registros históricos. No describen el aire de hoy.</div>
+        <div class="chart-wrapper"><canvas id="pmChart" role="img" aria-label="Evolución de PM2.5" aria-describedby="chartSummary"></canvas><p id="chartMessage" class="chart-message" role="status">Elige una estación para explorar la gráfica.</p></div>
+        <div class="chart-legend"><span><i class="line-key" aria-hidden="true"></i> PM2.5 medido en la estación</span><span><i class="gap-key" aria-hidden="true"></i> Sin mediciones: la línea se interrumpe</span></div>
+        <p id="chartSummary" class="explanation">No se rellenan horas sin datos ni se conectan fuentes diferentes.</p>
+        <div class="coverage-grid"><div><span>Horas con mediciones</span><strong id="observedHours">—</strong></div><div><span>Horas sin mediciones</span><strong id="missingHours">—</strong></div><div><span>Promedio de las horas registradas</span><strong id="periodMean">—</strong></div></div>
+        <p id="coverageBasis" class="footnote"></p>
+        <details id="observationsDetails"><summary>Ver los datos y los periodos sin mediciones</summary><p id="gapDetails"></p><div class="table-pager"><button id="tableNewer" type="button" class="button secondary" disabled>Más recientes</button><p id="tablePageInfo" tabindex="-1" role="status" aria-live="polite">Sin registros seleccionados.</p><button id="tableOlder" type="button" class="button secondary" disabled>Más antiguos</button></div><div class="table-scroll" role="region" aria-label="Tabla de observaciones; desplazable horizontalmente" tabindex="0"><table><caption id="tableCaption">Todas las observaciones de la gráfica, 100 por página. Un guion indica ausencia, no cero.</caption><thead><tr><th scope="col">Hora de Querétaro</th><th scope="col">Fecha UTC</th><th scope="col">PM2.5 · µg/m³</th><th scope="col">Revisión inicial</th></tr></thead><tbody id="observationRows"></tbody></table></div></details>
+      </section>
+      <section class="card comparison" id="comparisonPanel" aria-labelledby="comparisonTitle" aria-busy="false" data-api="{{ url_for('dashboard_v2.comparison') }}">
+        <div class="section-heading"><div><p class="eyebrow">COMPARAR SIN PERDER EL CONTEXTO</p><h2 id="comparisonTitle">¿Subió o bajó la concentración observada?</h2></div><span id="comparisonState" class="badge">Sin comparación</span></div>
+        <label for="comparisonAnchor" class="comparison-control">Qué periodos quieres comparar<select id="comparisonAnchor" aria-describedby="comparisonHelp"><option value="recent">Últimas 24 horas completas frente a las 24 anteriores</option><option value="latest">Dos periodos de 24 horas al final del historial de esta fuente</option></select></label>
+        <p id="comparisonHelp" class="footnote">Solo se usan horas equivalentes de esta estación y fuente. Las ventanas no son necesariamente días de calendario. El historial puede ser antiguo. Esta comparación es independiente del periodo de la gráfica.</p>
+        <p id="comparisonSummary" class="explanation" role="status" aria-live="polite" aria-atomic="true">Elige una estación para comparar.</p>
+        <div class="comparison-values" id="comparisonValues" hidden><div><span>Antes · promedio de horas comparables</span><strong id="previousMean">—</strong></div><span aria-hidden="true">→</span><div><span>Después · promedio de las mismas horas</span><strong id="currentMean">—</strong></div></div>
+        <p id="comparisonPeriods" class="comparison-periods"></p><p id="comparisonCoverage" class="footnote"></p>
+        <details id="comparisonMethod"><summary id="comparisonMethodToggle">¿Cómo se calculó? Ver método y horas utilizadas</summary><p id="comparisonMeta"></p><p id="comparisonUtc"></p><div class="table-scroll" role="region" aria-label="Tabla de las 24 horas emparejadas; desplazable horizontalmente" tabindex="0"><table><caption>Valores originales antes y después. Un guion indica ausencia, no cero. Los promedios usan pares utilizables; si falta suficiencia no se publica comparación.</caption><thead><tr><th scope="col">Antes · hora de Querétaro</th><th scope="col">Después · hora de Querétaro</th><th scope="col">Antes · µg/m³</th><th scope="col">Después · µg/m³</th><th scope="col">¿Par horario utilizable?</th></tr></thead><tbody id="comparisonRows"></tbody></table></div></details>
+      </section>
+    </div>
+    <section class="knowledge-grid" aria-label="Cómo interpretar la información"><article class="card"><p class="eyebrow">ENTENDER EL NÚMERO</p><h2>¿Qué significa µg/m³?</h2><p>Son microgramos de partículas por metro cúbico de aire. El número expresa una concentración: por sí solo no es un índice de salud.</p><p>Una medición antigua, un promedio de varios días y una lectura horaria cuentan cosas distintas. Siempre revisa la fecha y el periodo.</p></article><article class="card"><p class="eyebrow">ENTENDER LOS LÍMITES</p><h2>¿Qué tan completa es la información?</h2><p>Mostramos cuántas horas tienen registros y cuántas faltan. Una revisión automática puede señalar datos que necesitan atención, pero no certifica su precisión.</p><p>Que la recopilación funcione no garantiza que la fuente haya publicado una medición reciente. El límite de dos horas indica antigüedad, no riesgo sanitario.</p></article></section>
+    <section class="card network" id="estaciones"><div class="section-heading"><div><p class="eyebrow">04 / COBERTURA CON LÍMITES CLAROS</p><h2>¿Dónde hay estaciones documentadas?</h2><p>Son ubicaciones del catálogo, no un mapa de concentraciones de todo el territorio.</p></div><span id="directoryCount" class="badge">Catálogo</span></div><div class="network-grid"><div><div id="stationMap" aria-label="Ubicaciones documentadas; también disponibles en la lista"></div><button id="baseMap" type="button" class="button secondary map-button" aria-pressed="false">Activar mapa base en línea</button><p id="mapNote" class="footnote">La lista funciona sin mapa base ni conexión externa.</p></div><div id="stationList" class="station-list" aria-label="Seleccionar estación desde la lista"></div></div><details><summary>Consultar cobertura por estación, año y fuente</summary><div class="table-scroll"><table><caption>Inventario local; no acredita cobertura completa de municipios.</caption><thead><tr><th scope="col">Estación / municipio</th><th scope="col">Fuente / año UTC</th><th scope="col">Registros</th><th scope="col">Fechas UTC disponibles</th></tr></thead><tbody id="inventoryRows"></tbody></table></div></details></section>
+    <section class="research" id="inteligencia"><div><p class="eyebrow">AERIS INTELIGENCIA / INVESTIGACIÓN EN DESARROLLO</p><h2>Entender hoy. Investigar lo que viene.</h2><p>Investigamos pronósticos de PM2.5 a 1, 6 y 24 horas, comparando modelos con referencias sencillas. La validación independiente sigue pendiente: <strong>no se emiten pronósticos.</strong> El clasificador académico de riesgo respiratorio es un antecedente distinto, sin validación clínica.</p></div><span class="disabled-badge">DESHABILITADO</span></section>
+    <footer><div><strong>AERIS</strong><p>Inteligencia ambiental para Querétaro.<br>Datos reales, explicaciones y límites visibles.</p></div><div><a href="{{ url_for('dashboard_v2.explorer') }}">Explorador técnico</a><a href="{{ url_for('index') }}">Dashboard original</a><span id="consultedAt">Lectura de la base local pendiente</span></div></footer>
+  </div>
+</main>
+<noscript><p class="error">Esta experiencia necesita JavaScript. Puedes consultar la <a href="{{ url_for('index') }}">aplicación original</a>.</p></noscript>
+<script src="{{ url_for('static', filename='v2/vendor/leaflet/leaflet.js') }}"></script>
+<script src="{{ url_for('static', filename='v2/vendor/chartjs/chart.umd.js') }}"></script>
+<script type="module" src="{{ url_for('static', filename='v2/js/public.js') }}"></script>
+</body></html>
