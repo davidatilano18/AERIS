@@ -12,7 +12,7 @@
 <a class="skip" href="#main">Saltar al contenido</a>
 <header class="site-header"><div class="wrap nav-row">
   <a class="brand" href="/inicio" aria-label="AERIS, inicio"><span class="brand-icon" aria-hidden="true">≋</span><span>AERIS<small>INTELIGENCIA AMBIENTAL</small></span></a>
-  <nav aria-label="Navegación principal"><a href="#panorama">Panorama</a><a href="#mapa">Mapa</a><a href="#tiempo">Tiempo</a><a href="/inicio/explorar">Laboratorio</a><a href="#investigacion">Investigación</a><a href="/v2/datos">Datos <span aria-hidden="true">↗</span></a></nav>
+  <nav aria-label="Navegación principal"><a href="#estado">¿Cómo está?</a><a href="#panorama">Panorama</a><a href="#mapa">Mapa</a><a href="#tiempo">Tiempo</a><a href="/inicio/explorar">Laboratorio</a><a href="#investigacion">Investigación</a><a href="/v2/datos">Datos <span aria-hidden="true">↗</span></a></nav>
   <a class="nav-tag" href="/inicio/anterior">Comparar versión anterior ↗</a>
 </div></header>
 <main id="main">
@@ -23,7 +23,7 @@
     <div class="hero-copy"><p class="eyebrow"><span class="tiny-line"></span> CIENCIA QUE SE PUEDE ENTENDER</p>
       <h1 id="hero-title">El aire que respiras,<br>en palabras que<br><em>entiendes.</em></h1>
       <p class="hero-intro">Querétaro, observado con evidencia.<br>Explora lo que sabemos del aire y lo que todavía falta por conocer.</p>
-      <div class="actions"><a class="button primary" href="/inicio/explorar">Abrir laboratorio <span aria-hidden="true">↗</span></a><a class="button outline" href="#investigacion">Conoce la investigación <span aria-hidden="true">→</span></a></div>
+      <div class="actions"><a class="button primary" href="#estado">¿Cómo está el aire? <span aria-hidden="true">↓</span></a><a class="button outline" href="/inicio/explorar">Abrir laboratorio <span aria-hidden="true">↗</span></a></div>
       <p class="hero-foot">OBSERVAR <span>·</span> COMPRENDER <span>·</span> INVESTIGAR</p>
     </div>
     <aside class="hero-visual telemetry" aria-label="Panorama de observaciones reales">
@@ -36,9 +36,67 @@
   </div>
   <div class="wrap hero-bottom"><span>DATOS REALES. PREGUNTAS ABIERTAS.</span><button id="motionToggle" type="button" aria-pressed="false">Pausar movimiento</button><a href="#panorama" aria-label="Ir al panorama de datos">DESCUBRE LO QUE SABEMOS ↓</a></div>
 </section>
+{% if estado and estado.resumen %}{% set r = estado.resumen %}
+<section class="section wrap estado" id="estado" aria-labelledby="estado-title">
+  <div class="section-head"><div><p class="eyebrow">01 / LA RESPUESTA CORTA</p><h2 id="estado-title">¿Cómo está el aire en Querétaro?</h2></div><p>Promedios diarios de PM2.5 comparados con la norma mexicana.<br>Cada estación por separado; sin promedios inventados.</p></div>
+  <div class="estado-answer">
+    <div class="estado-verdict">
+      <span class="estado-kicker">{{ short_date(r.desde) }} – {{ short_date(r.hasta) }} · {{ r.estaciones }} estaciones</span>
+      <p class="estado-big">{% if r.pct_buena >= 80 %}Mayormente <em class="b-buena">buena</em>.{% elif r.pct_buena_aceptable >= 80 %}Entre <em class="b-buena">buena</em> y <em class="b-aceptable">aceptable</em>.{% else %}Con días de calidad <em class="b-mala">mala</em>.{% endif %}</p>
+      <p class="estado-lead"><strong>{{ '%.0f'|format(r.pct_buena) }} %</strong> de los {{ r.dias }} días completos de medición tuvo calidad <strong>Buena</strong> según la norma mexicana, y {% if r.malos %}<strong>{{ r.malos }}</strong> fueron Mala o peor{% else %}<strong>ninguno</strong> llegó a Mala{% endif %}.</p>
+      <p class="estado-lead">Con la guía más estricta de la OMS (15 µg/m³ en 24 h), <strong>{{ '%.0f'|format(r.pct_oms) }} %</strong> de esos días la superó.</p>
+      {% if estado.anterior %}{% set a = estado.anterior %}<div class="estado-before"><span class="mini-label">¿Y ANTES?</span><p>{{ a.periodo }}, {{ a.estaciones }} estaciones: <strong>{{ '%.0f'|format(a.pct_buena) }} %</strong> de {{ a.dias }} días fue Buena, {{ a.malos }} Mala y {{ '%.0f'|format(a.pct_oms) }} % superó la guía OMS.</p><small>Otra temporada y otra fuente de datos: sirve de contexto, no demuestra una tendencia.</small></div>{% endif %}
+    </div>
+    <div class="estado-scale" aria-label="Escala oficial del Índice AIRE Y SALUD para PM2.5, promedio de 24 horas">
+      <p class="mini-label">ASÍ SE CLASIFICA UN DÍA · µg/m³</p>
+      <ol>
+        <li class="b-buena"><span>Buena</span><b>0–15</b><small>Riesgo bajo</small></li>
+        <li class="b-aceptable"><span>Aceptable</span><b>15–25</b><small>Riesgo moderado</small></li>
+        <li class="b-mala"><span>Mala</span><b>25–79</b><small>Riesgo alto</small></li>
+        <li class="b-muymala"><span>Muy mala</span><b>79–130</b><small>Riesgo muy alto</small></li>
+        <li class="b-extrema"><span>Extremadamente mala</span><b>&gt;130</b><small>Riesgo extremo</small></li>
+      </ol>
+      <p class="estado-source">NOM-172-SEMARNAT-2023 (Tabla 5), valores vigentes desde enero de 2026. Se aplican a todos los días para comparar con una sola vara; en 2024–2025 el límite de «Aceptable» era {{ estado.limite_aceptable_2024_2025 }}.</p>
+    </div>
+  </div>
+
+  <h3 class="estado-sub">Día por día, estación por estación</h3>
+  <div class="estado-series">
+    {% for grupo in estado.series|groupby('periodo')|sort(attribute='list.0.ultimo', reverse=true) %}<h4 class="estado-period">{{ grupo.grouper }}</h4>
+    {% for s in grupo.list %}
+    <article class="estado-row">
+      <div class="estado-row-head"><strong>{{ s.nombre }}</strong><span>{{ s.municipio }} · {{ short_date(s.primero) }} – {{ short_date(s.ultimo_valido or s.ultimo) }}</span></div>
+      <div class="estado-bar" role="img" aria-label="{{ s.nombre }}: {% for b in estado.bandas if s.conteo[b] %}{{ s.conteo[b] }} días {{ b }}{{ ', ' if not loop.last }}{% endfor %}">
+        {% for b, cls in [('Buena','b-buena'),('Aceptable','b-aceptable'),('Mala','b-mala'),('Muy mala','b-muymala'),('Extremadamente mala','b-extrema')] %}{% if s.conteo[b] %}<i class="{{ cls }}" style="--w:{{ '%.2f'|format(s.porcentajes[b]) }}%" title="{{ b }}: {{ s.conteo[b] }} días"><span>{{ s.conteo[b] }}</span></i>{% endif %}{% endfor %}
+      </div>
+      <p class="estado-row-foot">{{ s.validos }} días completos · {{ '%.0f'|format(s.pct_buena) }} % Buena · {{ '%.0f'|format(s.pct_oms) }} % sobre la guía OMS{% if s.revision %} · <span class="estado-flag">{{ s.revision }} día{{ 's' if s.revision > 1 }} en revisión</span>{% endif %}{% if s.media is not none %} · promedio {{ '%.1f'|format(s.media) }} µg/m³{% endif %}</p>
+    </article>
+    {% endfor %}{% endfor %}
+  </div>
+
+  <div class="estado-grid">
+    <article class="estado-panel">
+      <p class="mini-label">PERFIL DE UN DÍA TÍPICO · HORA DE QUERÉTARO</p>
+      <h3>¿A qué hora se respira peor?</h3>
+      {% set p = estado.perfiles.get('OpenAQ') %}
+      {% if p %}<p>El PM2.5 sube en la mañana (máximo cerca de las <strong>{{ p.manana }}:00</strong>) y otra vez al anochecer (<strong>{{ p.tarde }}:00</strong>). El momento más limpio es alrededor de las <strong>{{ p.minimo }}:00</strong>. En la hora más alta hay {{ '%.1f'|format(p.razon) }} veces más partículas que en la más baja.</p>{% endif %}
+      <div class="estado-chart"><canvas id="estadoPerfil" role="img" aria-label="Promedio de PM2.5 por hora del día"></canvas></div>
+      <p class="estado-note">Promedio de todas las horas válidas de cada fuente. Coincide con horarios de mayor actividad en la ciudad; estos datos no demuestran por sí solos la causa.</p>
+    </article>
+    <article class="estado-panel qc">
+      <p class="mini-label">CONTROL DE CALIDAD</p>
+      <h3>No todo pico es real.</h3>
+      <p>Un sensor puede fallar y reportar en una hora valores imposibles. AERIS marca esas horas y <strong>no las usa</strong> para calificar el día.{% if estado.revisiones %} En este periodo, <strong>{{ estado.revisiones }} día{{ 's' if estado.revisiones > 1 }}</strong> quedó fuera por eso: sin ese filtro habría parecido el peor día del registro.{% endif %}</p>
+      <p class="mini-label" style="margin-top:22px">LOS DÍAS MÁS ALTOS QUE SÍ SON VÁLIDOS</p>
+      <ol class="estado-top">{% for d in estado.picos %}<li><span class="dot {{ {'Buena':'b-buena','Aceptable':'b-aceptable','Mala':'b-mala','Muy mala':'b-muymala','Extremadamente mala':'b-extrema'}[d.banda] }}"></span><span><strong>{{ '%.1f'|format(d.media) }} µg/m³</strong> · {{ d.banda }}</span><small>{{ short_date(d.dia) }} · {{ d.nombre }} · {{ d.fuente }}</small></li>{% endfor %}</ol>
+    </article>
+  </div>
+  <script id="estadoPerfiles" type="application/json">{{ estado.perfiles|tojson }}</script>
+</section>
+{% endif %}
 {% if aeris_snapshot_created %}<div class="snapshot-banner wrap">Copia estática preparada el {{ aeris_snapshot_created }}. Esa fecha no es la fecha de medición del aire.</div>{% endif %}
 <section class="section wrap" id="panorama" aria-labelledby="panorama-title">
-  <div class="section-head"><div><p class="eyebrow">01 / EVIDENCIA ANTES QUE CONCLUSIONES</p><h2 id="panorama-title">La evidencia, de un vistazo.</h2></div><p>Red disponible · historial completo.<br>Las estaciones no representan todo el territorio.</p></div>
+  <div class="section-head"><div><p class="eyebrow">02 / EVIDENCIA ANTES QUE CONCLUSIONES</p><h2 id="panorama-title">La evidencia, de un vistazo.</h2></div><p>Red disponible · historial completo.<br>Las estaciones no representan todo el territorio.</p></div>
   {% if unavailable %}<div class="notice error" role="alert"><strong>No pudimos consultar las observaciones.</strong> No mostramos cifras anteriores como actuales. Puedes volver a cargar la página o visitar el <a href="/v2/datos">explorador</a>.</div>
   {% elif not overview.total %}<div class="notice" role="status"><strong>Todavía no hay mediciones visibles en esta base.</strong> Las ubicaciones catalogadas no equivalen a observaciones. No podemos describir el aire actual.</div>{% endif %}
   <div class="metrics">
@@ -51,11 +109,11 @@
   <details class="source-details"><summary>Ver fuentes y meses disponibles <span>Procedencia · cobertura temporal</span></summary><div class="source-grid">{% if overview %}{% for source in overview.sources %}<article class="source-card"><p class="eyebrow">{{ source.name }}</p><h3>{{ source.label }}</h3><p>{{ '{:,}'.format(source.count) }} registros locales · µg/m³</p><div class="month-list">{% for month in source.months %}<span>{{ month }}</span>{% else %}<span>Sin observaciones</span>{% endfor %}</div><p class="muted">Meses con registros, no meses completos ni una serie continua.{% if source.name=='OpenAQ' %} Incluye historial heredado cuya etiqueta no acredita descarga API v3.{% endif %}</p><a href="/v2/datos?source={{ source.name }}&amp;period=all">Explorar esta fuente ↗</a></article>{% endfor %}{% endif %}</div></details>
 </section>
 <section class="map-section section" id="mapa" aria-labelledby="map-title"><div class="wrap">
-  <div class="section-head"><div><p class="eyebrow">02 / EL TERRITORIO, CON CONTEXTO</p><h2 id="map-title">Querétaro, punto por punto.</h2></div><a class="text-link" href="/v2#estaciones">Abrir exploración actual ↗</a></div>
+  <div class="section-head"><div><p class="eyebrow">03 / EL TERRITORIO, CON CONTEXTO</p><h2 id="map-title">Querétaro, punto por punto.</h2></div><a class="text-link" href="/v2#estaciones">Abrir exploración actual ↗</a></div>
   <div class="map-layout"><div class="map-frame"><div id="homeMap" role="region" aria-label="Vista previa de ubicaciones catalogadas en Querétaro"></div><div class="map-caption"><span>UBICACIONES DOCUMENTADAS</span><span>Sin interpolación territorial</span></div></div><aside class="map-aside"><p class="eyebrow">ELIGE UN PUNTO DE OBSERVACIÓN</p><h3>Encuentra tu<br> punto de observación.</h3><p>Selecciona una estación para abrir sus fechas y observaciones. Cada punto tiene su propia historia.</p><div class="legend"><span><i class="key has-data" aria-hidden="true"></i> Con registros en alguna fuente</span><span><i class="key no-data" aria-hidden="true"></i> Catálogo sin registros locales</span></div><button class="button outline" id="tilesToggle" type="button" aria-pressed="false">Activar mapa base en línea</button><p id="mapStatus" class="map-status" role="status">La lista permite explorar sin depender del mapa.</p><details><summary>Ver todas las estaciones</summary><ul class="station-links">{% if overview %}{% for station in overview.stations %}<li><a href="/v2?source=OpenAQ&amp;station={{ station.sensor_id }}&amp;period=all">{{ station.name }}</a><small>{{ station.municipality }} · {{ 'Con registros' if station.records else 'Sin registros locales' }}</small></li>{% endfor %}{% endif %}</ul></details></aside></div>
 </div></section>
 <section class="section wrap weather-showcase" id="tiempo" aria-labelledby="tiempo-title" data-state="loading">
-  <div class="section-head"><div><p class="eyebrow">03 / EL MARQUÉS, OBSERVADO DE NUEVO</p><h2 id="tiempo-title">El Marqués vuelve a tener datos.</h2></div><p>Meteorología medida en el Aeropuerto Intercontinental de Querétaro.<br>Contexto del aire, no una medición de contaminantes.</p></div>
+  <div class="section-head"><div><p class="eyebrow">04 / EL MARQUÉS, OBSERVADO DE NUEVO</p><h2 id="tiempo-title">El Marqués vuelve a tener datos.</h2></div><p>Meteorología medida en el Aeropuerto Intercontinental de Querétaro.<br>Contexto del aire, no una medición de contaminantes.</p></div>
   <div class="weather-showcase-grid">
     <article class="weather-story">
       <span class="product-badge observed">OBSERVACIÓN · NOAA GHCNh</span>
@@ -80,18 +138,18 @@
   </div>
 </section>
 <section class="section wrap history-section" id="evolucion" aria-labelledby="history-title">
-  <div class="section-head"><div><p class="eyebrow">04 / OBSERVAR ANTES DE INTERPRETAR</p><h2 id="history-title">Una estación. Una semana.</h2></div><a class="text-link" href="/v2/datos">Abrir todos los periodos ↗</a></div>
+  <div class="section-head"><div><p class="eyebrow">05 / OBSERVAR ANTES DE INTERPRETAR</p><h2 id="history-title">Una estación. Una semana.</h2></div><a class="text-link" href="/v2/datos">Abrir todos los periodos ↗</a></div>
   <div class="history-panel"><div class="chart-toolbar"><div><span class="mini-label">PM2.5 / OBSERVACIONES HORARIAS</span><p id="historyCaption">Últimos siete días · fuente y estación seleccionadas</p></div><div class="chart-selectors"><label for="historySource">Fuente<select id="historySource"><option value="OpenAQ">OpenAQ · API e historial</option><option value="OpenAQ-Archive">OpenAQ Archive</option></select></label><label for="historyStation">Estación<select id="historyStation">{% if overview %}{% for station in overview.stations %}<option value="{{ station.sensor_id }}" {% if loop.first %}selected{% endif %}>{{ station.name }}</option>{% endfor %}{% endif %}</select></label></div></div>
   <div class="history-chart" id="historyChartBox" aria-busy="true"><canvas id="homeChart" role="img" aria-label="Concentración horaria de PM2.5" aria-describedby="historySummary"></canvas><p id="historyState" role="status" aria-live="polite">Consultando observaciones…</p></div>
   <div class="chart-foot"><p id="historySummary" aria-live="polite">No se rellenan huecos ni se conectan fuentes diferentes.</p><span>µg/m³ · HORA DE QUERÉTARO</span></div>
   <details class="chart-data"><summary>Ver valores, revisión y límites de interpretación</summary><p>La curva representa observaciones, no un índice de salud ni una tendencia de años. Las alertas automáticas requieren revisión y no certifican precisión. Los huecos interrumpen la línea.</p><a id="historyExplorer" href="/v2/datos">Explorar otras fechas →</a><div class="accessible-table" tabindex="0" role="region" aria-label="Observaciones horarias, tabla desplazable"><table><caption>Valores del periodo seleccionado. Un guion es ausencia, no cero.</caption><thead><tr><th scope="col">Fecha UTC</th><th scope="col">PM2.5 · µg/m³</th><th scope="col">Revisión inicial</th></tr></thead><tbody id="historyRows"></tbody></table></div></details></div>
 </section>
-<section class="section wrap" id="investigacion" aria-labelledby="research-title"><div class="research-panel"><div class="research-copy"><p class="eyebrow">05 / UNA PREGUNTA QUE MERECE EVIDENCIA</p><h2 id="research-title">¿Está empeorando<br>la calidad del aire<br>en Querétaro?</h2><p>Dos números no cuentan toda la historia. Faltan series largas, compatibles y suficientemente completas para responder.</p><span class="research-status">PREGUNTA ABIERTA · EVIDENCIA INSUFICIENTE</span></div><div class="research-method"><span class="section-number" aria-hidden="true">?</span><h3>La pregunta sigue abierta.</h3><details><summary>Método y resultados disponibles</summary><p>La comparación actual usa dos ventanas de 24 horas de una misma estación y fuente: exige al menos 18 pares de horas utilizables y tres pares en cada bloque de seis horas. Describe concentraciones; no demuestra riesgo sanitario ni una tendencia anual.</p><p>Las campañas de 2025 y 2026 no se unen aquí. El historial de El Marqués abarca parte de septiembre de 2021. Con esta cobertura no publicamos una conclusión estatal de deterioro.</p><a href="/v2#comparisonPanel">Ver comparaciones y su cálculo →</a></details><p class="research-boundary">El clasificador académico de riesgo respiratorio es un antecedente distinto, sin validación clínica. Los pronósticos de PM2.5 son experimentales y permanecen <strong>deshabilitados</strong>.</p></div></div></section>
-<section class="section wrap municipalities" id="municipios" aria-labelledby="municipality-title"><div class="section-head"><div><p class="eyebrow">06 / DISTINTOS LUGARES, DISTINTAS HISTORIAS</p><h2 id="municipality-title">Acércate a tu municipio.</h2></div><p>Explora estaciones, no promedios municipales.<br>Una ausencia de registros no equivale a aire limpio.</p></div><div class="municipality-grid">
+<section class="section wrap" id="investigacion" aria-labelledby="research-title"><div class="research-panel"><div class="research-copy"><p class="eyebrow">06 / UNA PREGUNTA QUE MERECE EVIDENCIA</p><h2 id="research-title">¿Está empeorando<br>la calidad del aire<br>en Querétaro?</h2><p>Dos números no cuentan toda la historia. Faltan series largas, compatibles y suficientemente completas para responder.</p><span class="research-status">PREGUNTA ABIERTA · EVIDENCIA INSUFICIENTE</span></div><div class="research-method"><span class="section-number" aria-hidden="true">?</span><h3>La pregunta sigue abierta.</h3><details><summary>Método y resultados disponibles</summary><p>La comparación actual usa dos ventanas de 24 horas de una misma estación y fuente: exige al menos 18 pares de horas utilizables y tres pares en cada bloque de seis horas. Describe concentraciones; no demuestra riesgo sanitario ni una tendencia anual.</p><p>Las campañas de 2025 y 2026 no se unen aquí. El historial de El Marqués abarca parte de septiembre de 2021. Con esta cobertura no publicamos una conclusión estatal de deterioro.</p><a href="/v2#comparisonPanel">Ver comparaciones y su cálculo →</a></details><p class="research-boundary">El clasificador académico de riesgo respiratorio es un antecedente distinto, sin validación clínica. Los pronósticos de PM2.5 son experimentales y permanecen <strong>deshabilitados</strong>.</p></div></div></section>
+<section class="section wrap municipalities" id="municipios" aria-labelledby="municipality-title"><div class="section-head"><div><p class="eyebrow">07 / DISTINTOS LUGARES, DISTINTAS HISTORIAS</p><h2 id="municipality-title">Acércate a tu municipio.</h2></div><p>Explora estaciones, no promedios municipales.<br>Una ausencia de registros no equivale a aire limpio.</p></div><div class="municipality-grid">
 {% if overview %}{% set marques=overview.marques %}<article class="municipality featured"><div class="featured-top"><span class="eyebrow">EXPLORACIÓN DESTACADA</span><span aria-hidden="true">↗</span></div><h3>El Marqués</h3>{% if marques and marques.records %}<p class="municipality-sub">Historia disponible · no describe el aire de hoy</p><p>{{ marques.records }} registros locales de PM2.5. {% for source in marques.sources %}{{ source.first[:10] }} a {{ source.latest[:10] }} · {{ source.source }}.{% endfor %}</p><p class="municipality-caution">Trazabilidad limitada. No permite concluir una tendencia de años.</p><a class="button primary" href="/v2?source=OpenAQ&amp;station=1352686&amp;period=all">Explorar su historia →</a>{% else %}<p>No hay observaciones locales disponibles para esta estación. No inferimos el estado actual del aire.</p><a href="/v2/datos">Consultar cobertura →</a>{% endif %}</article>
 {% for municipality in overview.municipalities if municipality.name != 'El Marqués' %}<article class="municipality"><span class="eyebrow">RED DISPONIBLE</span><h3>{{ municipality.name }}</h3><p>{{ municipality.observed_stations }} de {{ municipality.stations|length }} estaciones catalogadas tienen registros.</p><ul>{% for station in municipality.stations %}<li><a href="/v2?source=OpenAQ&amp;station={{ station.sensor_id }}&amp;period=all">{{ station.name }} <span aria-hidden="true">↗</span></a><small>{{ 'Historial disponible' if station.records else 'Sin observaciones locales' }}</small></li>{% endfor %}</ul></article>{% endfor %}{% endif %}
 </div><p class="scope-note">Huimilpan no tiene sensor en nuestro catálogo seleccionado. Esto no acredita ausencia de estaciones externas. El alcance de AERIS depende de los datos verificables disponibles.</p></section>
-<section class="section wrap" id="datos"><div class="data-cta"><div><p class="eyebrow">07 / LA EVIDENCIA ESTÁ ABIERTA A EXPLORACIÓN</p><h2>Ve más allá del panorama.</h2><p>Consulta gráficas, fechas, fuentes, horas sin información y revisión automática de cada registro.</p></div><div class="cta-buttons"><a class="button primary" href="/inicio/explorar">Laboratorio ambiental</a><a class="button outline" href="/v2/datos">Abrir explorador de datos ↗</a><a href="/v2">Ir a la experiencia ciudadana →</a></div></div></section>
+<section class="section wrap" id="datos"><div class="data-cta"><div><p class="eyebrow">08 / LA EVIDENCIA ESTÁ ABIERTA A EXPLORACIÓN</p><h2>Ve más allá del panorama.</h2><p>Consulta gráficas, fechas, fuentes, horas sin información y revisión automática de cada registro.</p></div><div class="cta-buttons"><a class="button primary" href="/inicio/explorar">Laboratorio ambiental</a><a class="button outline" href="/v2/datos">Abrir explorador de datos ↗</a><a href="/v2">Ir a la experiencia ciudadana →</a></div></div></section>
 </main>
 <footer class="wrap footer"><a class="brand" href="/inicio">AERIS<small>INTELIGENCIA AMBIENTAL PARA QUERÉTARO</small></a><p>Datos reales. Interpretaciones responsables.<br>{% if overview %}Vista consultada: {{ local_date(overview.generated) }}.<br>Esta no es la fecha de medición.{% endif %}</p><a href="/">Dashboard original ↗</a><a href="/inicio/anterior">Comparar diseño anterior</a></footer>
 <script id="stationData" type="application/json">{{ (overview.stations if overview else [])|tojson }}</script>
@@ -100,5 +158,6 @@
 <script src="{{ url_for('static',filename='v2/vendor/chartjs/chart.umd.js') }}" defer></script>
 <script src="{{ url_for('static',filename='v2/js/home_history.js') }}" defer></script>
 <script src="{{ url_for('static',filename='v2/js/home_tiempo.js') }}" defer></script>
+<script src="{{ url_for('static',filename='v2/js/home_estado.js') }}" defer></script>
 <noscript><div class="wrap notice">Las cifras y enlaces funcionan sin JavaScript. El mapa interactivo requiere JavaScript; utiliza la lista de estaciones.</div></noscript>
 </body></html>

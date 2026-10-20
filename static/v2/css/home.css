@@ -51,3 +51,46 @@ body.motion-paused .reveal{opacity:1!important;transform:none!important;transiti
 @media(prefers-reduced-motion:reduce){.js-reveal .reveal{opacity:1;transform:none;transition:none}.weather-tile.is-loading strong{animation:none}}
 .site-header nav a.is-current{color:var(--teal)}
 .key.weather-key{background:#163f3d;border:2px solid #b8f2e1;border-radius:2px}
+
+/* ¿Cómo está el aire? Colores del Índice AIRE Y SALUD adaptados al tema. */
+.b-buena{--c:#4cc38a}.b-aceptable{--c:#e6c84f}.b-mala{--c:#ef8f3d}.b-muymala{--c:#e2554f}.b-extrema{--c:#a06ee8}
+.estado-answer{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:22px;align-items:stretch}
+.estado-verdict{border:1px solid var(--line);border-radius:10px;padding:32px;background:radial-gradient(110% 90% at 0% 0%,#1a4a3a55,transparent 60%),linear-gradient(145deg,#102737,#0a1c2a)}
+.estado-kicker{font-size:11px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase}
+.estado-big{font-size:clamp(38px,4.6vw,64px);line-height:1.02;letter-spacing:-.02em;margin:14px 0 18px;color:var(--ink)}
+.estado-big em{font-style:normal;color:var(--c)}
+.estado-lead{font-size:16px;line-height:1.6;color:var(--soft);margin:0 0 10px;max-width:52ch}
+.estado-lead strong{color:var(--ink)}
+.estado-scale{border:1px solid var(--line);border-radius:10px;padding:24px;background:linear-gradient(160deg,#0f2635,#0a1b28)}
+.estado-scale ol{list-style:none;margin:14px 0;padding:0;display:grid;gap:6px}
+.estado-scale li{display:grid;grid-template-columns:1fr auto;align-items:center;gap:2px 10px;padding:9px 12px 9px 14px;border-radius:6px;background:linear-gradient(90deg,color-mix(in srgb,var(--c) 22%,transparent),transparent 75%);border-left:4px solid var(--c)}
+.estado-scale li span{font-size:14px;color:var(--ink)}.estado-scale li b{font-weight:400;font-size:13px;color:var(--ink);font-variant-numeric:tabular-nums}
+.estado-scale li small{grid-column:1/-1;font-size:10px;color:var(--muted)}
+.estado-source{font-size:10px;color:var(--muted);line-height:1.6;margin:0}
+.estado-sub{font-size:22px;margin:38px 0 14px}
+.estado-series{display:grid;gap:10px}
+.estado-row{border:1px solid var(--line);border-radius:8px;padding:14px 18px;background:#0c1e2c}
+.estado-row-head{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:baseline}
+.estado-row-head strong{font-size:15px}.estado-row-head span{font-size:11px;color:var(--muted)}
+.estado-bar{display:flex;height:22px;border-radius:5px;overflow:hidden;margin:10px 0 8px;background:#0a1823}
+.estado-bar i{width:var(--w);background:var(--c);display:flex;align-items:center;justify-content:center;min-width:3px;transition:width .9s cubic-bezier(.2,.7,.2,1)}
+.estado-bar i span{font-size:10px;font-style:normal;color:#06141d;font-weight:600}
+.js-reveal .estado:not(.is-visible) .estado-bar i{width:0}
+.estado-row-foot{font-size:11px;color:var(--muted);margin:0}
+.estado-flag{color:#e6c789}
+.estado-grid{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:22px;margin-top:22px}
+.estado-panel{border:1px solid var(--line);border-radius:10px;padding:24px;background:linear-gradient(145deg,#102737,#0a1c2a)}
+.estado-panel h3{font-size:24px;margin:8px 0 12px}.estado-panel p{font-size:14px;line-height:1.6;color:var(--soft)}
+.estado-panel strong{color:var(--ink)}
+.estado-chart{position:relative;height:250px;margin:10px 0}
+.estado-note{font-size:11px!important;color:var(--muted)!important}
+.estado-top{list-style:none;padding:0;margin:10px 0 0;display:grid;gap:10px}
+.estado-top li{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;align-items:center;font-size:14px}
+.estado-top small{grid-column:2;font-size:11px;color:var(--muted)}
+.estado-top .dot{width:10px;height:10px;border-radius:50%;background:var(--c);grid-row:span 2}
+@media(max-width:960px){.estado-answer,.estado-grid{grid-template-columns:1fr}}
+@media(max-width:760px){.estado-verdict{padding:22px}.estado-lead{font-size:14px}.estado-scale{padding:18px}.estado-row{padding:12px}.estado-panel{padding:18px}.estado-chart{height:220px}}
+@media(prefers-reduced-motion:reduce){.estado-bar i{transition:none}.js-reveal .estado:not(.is-visible) .estado-bar i{width:var(--w)}}
+.estado-before{margin-top:22px;padding-top:18px;border-top:1px solid var(--line)}.estado-before p{font-size:14px;color:var(--soft);margin:8px 0 6px;line-height:1.6}.estado-before strong{color:var(--ink)}.estado-before small{font-size:11px;color:var(--muted)}
+.estado-period{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--teal);margin:18px 0 2px;font-weight:500}.estado-period:first-child{margin-top:0}
+.estado-panel .mini-label{font-size:9px;letter-spacing:.12em;color:var(--teal);margin:0}

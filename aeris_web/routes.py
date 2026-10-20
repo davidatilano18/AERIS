@@ -35,11 +35,21 @@ def render_home(template):
         point = datetime.fromisoformat(value.replace('Z','+00:00')).astimezone(ZoneInfo('America/Mexico_City'))
         offset = point.strftime('%z')
         return point.strftime('%d/%m/%Y '+chr(183)+' %H:%M')+' (UTC'+offset[:3]+':'+offset[3:]+')'
+    meses = ('ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic')
+    def short_date(value):
+        return f'{value.day} {meses[value.month - 1]} {value.year}'
     try:
         overview = read_home(current_app.extensions['aeris_v2_database']())
-        return render_template(template, overview=overview, local_date=local_date, unavailable=False)
+        try:
+            from .estado import read_estado
+            estado = read_estado(current_app.extensions['aeris_v2_database']())
+        except (sqlite3.Error, RuntimeError, KeyError, ValueError):
+            estado = None  # El resumen es complementario: nunca impide mostrar el resto.
+        return render_template(template, overview=overview, local_date=local_date, unavailable=False,
+                               estado=estado, short_date=short_date)
     except (sqlite3.Error, FileNotFoundError, RuntimeError, KeyError, ValueError):
-        return render_template(template, overview=None, local_date=local_date, unavailable=True), 503
+        return render_template(template, overview=None, local_date=local_date, unavailable=True,
+                               estado=None, short_date=short_date), 503
 
 
 @blueprint.get('/v2')

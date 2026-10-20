@@ -28,15 +28,20 @@ abrir el laboratorio → pestaña **Tiempo**. Pantalla completa del navegador: `
 
 ## 2. Recorrido guiado (6 minutos)
 
+Tesis: **cómo está y cómo ha estado el aire en Querétaro**, medido contra la norma mexicana.
+
 | Tiempo | Pantalla | Qué mostrar | Qué decir |
 |---|---|---|---|
-| 0:00–0:45 | `/inicio`, portada | Consola: 12,759 mediciones PM2.5, última observación, fuentes API/Archive separadas | «AERIS observa el aire de Querétaro con datos públicos verificables y dice explícitamente lo que no sabe.» |
-| 0:45–1:30 | Panorama y mapa | 6/8 estaciones con registros, 4 municipios; círculos = calidad del aire, **cuadrado = MMQT** | «Cada punto es una estación con su historia; no interpolamos un mapa de contaminación.» |
-| 1:30–2:45 | **El Marqués vuelve a tener datos** | Lecturas reales del aeropuerto (temperatura, humedad, viento con dirección), latencia NOAA; gráfica medido vs modelado: 160 h pareadas, sesgo +1.2 °C, MAE 1.7 °C, r 0.94 | «Ninguna estación oficial de calidad del aire está en El Marqués. El aeropuerto sí mide el tiempo cada hora. Lo comparamos con un reanálisis de NASA en la misma coordenada: coincide en forma, el modelo es ~1 °C más frío. Es una descripción, no una calibración.» |
-| 2:45–3:30 | Una estación, una semana | Serie PM2.5 horaria de Corregidora; huecos cortan la línea | «No rellenamos huecos: una hora sin dato es una hora sin dato.» |
-| 3:30–5:00 | `/inicio/explorar` → **Tiempo** | Selector de producto (observación/reanálisis), variables disponibles, cobertura por variable, **rosa de vientos** (predomina el este; calmas aparte) | «Solo se pueden elegir variables que existen. Observación y modelo nunca se mezclan; el reanálisis se dibuja punteado y en ámbar.» |
-| 5:00–5:40 | Pestaña **Aire** | Filtros de estación/fuente, cobertura horaria, revisión automática | «La calidad se marca, no se corrige: el valor original se conserva.» |
-| 5:40–6:00 | Pregunta abierta | «¿Está empeorando la calidad del aire?» → evidencia insuficiente; pronósticos deshabilitados | «La respuesta honesta hoy es: no lo sabemos todavía. El modelo está en prueba ciega hasta el 19 de noviembre.» |
+| 0:00–0:30 | `/inicio`, portada | Botón «¿Cómo está el aire?» | «Queríamos responder una pregunta sencilla con datos oficiales: ¿cómo está el aire que respiramos en Querétaro?» |
+| 0:30–1:45 | **¿Cómo está el aire?** | Veredicto «Mayormente buena»: 96 % de 149 días completos (17 sep–19 oct 2026, 5 estaciones) en calidad Buena, ninguno Mala; 4 % supera la guía OMS. Escala oficial a la derecha | «Calificamos cada día como lo hace la NOM-172: promedio de 24 h con al menos 18 horas. Con la norma mexicana, el aire fue bueno casi todos los días. Con la guía de la OMS, que es más estricta, algunos días no.» |
+| 1:45–2:30 | Barras por estación y «¿Y antes?» | Jun–sep 2025: 81 % Buena, 2 días Mala, 19 % sobre OMS | «Cada estación por separado: no inventamos un promedio estatal. El periodo de 2025 es otra temporada y otra fuente; lo usamos como contexto, no como tendencia.» |
+| 2:30–3:30 | ¿A qué hora se respira peor? + Control de calidad | Picos ~7:00 y ~19:00, mínimo ~14:00 (2.3 veces menos). Un día en revisión | «El aire empeora en la mañana y al anochecer; coincide con las horas de más actividad. Y no todo pico es real: un sensor reportó 304 µg/m³ entre horas de 0; nuestro control de calidad lo detectó y ese día no se califica.» |
+| 3:30–4:30 | Mapa y El Marqués | Estaciones (círculos) y el aeropuerto (cuadrado); temperatura, humedad y viento reales | «El Marqués no tiene estación oficial de calidad del aire; sí tiene datos meteorológicos reales del aeropuerto, que ayudan a entender el contexto.» |
+| 4:30–5:30 | `/inicio/explorar` | Pestaña Aire (estación, periodo, cobertura) y Tiempo (rosa de vientos) | «Cualquiera puede explorar cada estación y ver exactamente qué horas faltan.» |
+| 5:30–6:00 | Cierre | Pregunta abierta y modelo en validación ciega | «El siguiente paso es predecir: el modelo está en una prueba ciega hasta el 19 de noviembre; por rigor no mostramos pronósticos antes.» |
+
+Si preguntan por qué 25 y no 33: la NOM-025 bajó el límite de 24 h a 25 µg/m³ en 2026; para comparar
+periodos usamos la vara vigente. Con el límite de 2025 (33), los 2 días «Mala» de 2025 serían «Aceptable».
 
 ## 3. Funcionalidades terminadas
 
