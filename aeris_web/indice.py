@@ -269,7 +269,7 @@ def _resumir(path):
         'dias': n, 'estaciones': len(estaciones), 'desde': min(r['dia'] for r in registros),
         'hasta': max(r['dia'] for r in registros), 'conteo': total,
         'porcentajes': {b: 100 * v / n for b, v in total.items()},
-        'determinantes': [{'id': c, 'nombre': CONTAMINANTES[c][0], 'dias': v, 'pct': 100 * v / no_buenos}
+        'determinantes': [{'id': c, 'nombre': CONTAMINANTES[c][0], 'dias': v, 'pct': 100 * v / no_buenos if no_buenos else 0}
                           for c, v in sorted(determinantes.items(), key=lambda x: -x[1])],
         'no_buenos': no_buenos, 'filas': filas,
         'anios': [{'anio': a, 'dias': sum(v.values()), 'conteo': v,
