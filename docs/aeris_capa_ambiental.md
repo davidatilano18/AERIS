@@ -89,6 +89,27 @@ $db = 'data\dev\aeris_ambiental_dev.db'
 Cada ejecución escribe un reporte en `<carpeta de la base>/sync_runtime/ambiental/<uuid>.json` y,
 si todo fue correcto, `ultimo_correcto.json`. Código de salida 0 = correcto o «no corresponde».
 
+## 4b. Contaminantes criterio y modelo CAMS (AERIS 3.1–3.3, 20/10/2026)
+
+| Fuente | `tipo_producto` | Estaciones | Variables | Conector |
+|---|---|---|---|---|
+| `openaq-archivo` | observacion | `openaq:<ubicación>` (8 de la red; `metadatos.sensor_pm25` enlaza con `mediciones`) | pm10, o3, no2, so2, co | `openaq_archivo.py` (lee archivos ya descargados y verificados) |
+| `open-meteo-cams` | modelo | `cams:marques` y `cams:<ubicación>` por estación (`tipo_sitio=punto_modelo`) | pm25, pm10 | `open_meteo_cams.py` (vía `actualizar`, mismo recorrido por bloques que POWER) |
+
+- El PM2.5 del archivo va a `mediciones` con la herramienta existente (`openaq_archive.import_manifest`);
+  aquí no se duplica. Unidades exigidas sin conversión (ppm para gases, µg/m³ para partículas).
+- CAMS: `timezone=GMT`, `domains=cams_global`; horas futuras (pronóstico) descartadas. Los 8 puntos
+  caen en 3 celdas: la validación lo detecta comparando series, no coordenadas (`aeris_web/modelo.py`).
+- Índice AIRE Y SALUD y revisión `gases-v1`: `aeris_web/indice.py` (solo lectura, al consultar).
+
+Construcción del corte 32 (copias en `C:\Users\MSI_COREi5\AERIS-Demo-datos\`, nunca producción):
+
+1. `corte-31`: copia de `ambiental-demo-003` → `esquema.sembrar` → `openaq_archive.import_manifest`
+   (PM2.5) y `openaq_archivo.importar` (gases) con `data/manifests/openaq_archivo_2021_2026_completo.json`
+   (6,025 archivos, un reintento registrado) → sanitizar rutas de `ingestas.reporte_json` → `VACUUM`.
+2. `corte-32`: copia de `corte-31` → `sincronizar_fuente('open-meteo-cams', desde 2022-08-04)` →
+   sellado (sin rutas locales, `integrity_check`, fuentes `autorizada=0`, `manifest.json`, `demo.json`).
+
 ## 5. Actualización diaria a las 08:00 — auditoría y propuesta
 
 **Automatización existente** (consultada con `Get-ScheduledTask`, sin cambios):
