@@ -1,10 +1,15 @@
 import sqlite3
-from flask import Blueprint,current_app,jsonify,render_template,request
+from flask import Blueprint,current_app,jsonify,render_template,request,send_from_directory
 from .data import read_dashboard,TooManyRows
 from .public_data import explain
 from .comparisons import read_comparison
 
 blueprint=Blueprint('dashboard_v2',__name__)
+
+
+@blueprint.get('/favicon.ico')
+def favicon():
+    return send_from_directory(current_app.static_folder, 'logo.png', mimetype='image/png', max_age=86400)
 
 
 @blueprint.get('/inicio')

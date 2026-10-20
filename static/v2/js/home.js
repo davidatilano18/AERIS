@@ -53,6 +53,24 @@
     path.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); marker.openPopup(); } });
   }
   if (valid.length) status.textContent=`${valid.length} ubicaciones catalogadas. Retícula de coordenadas, sin mapa de concentraciones.`;
+  // Estaciones meteorológicas observadas (cuadrado): miden el tiempo, no contaminantes.
+  fetch('/api/ambiental/v1/estaciones?fuente=noaa-ghcnh', {cache: 'no-store'}).then(r => r.ok ? r.json() : null).then(data => {
+    for (const site of data?.estaciones || []) {
+      const icon = L.divIcon({className: 'weather-mmqt-icon', iconSize: [16, 16], iconAnchor: [8, 8]});
+      const marker = L.marker([site.latitud, site.longitud], {icon, keyboard: true, title: site.nombre});
+      const box = document.createElement('div');
+      const name = document.createElement('strong'); name.textContent = site.nombre;
+      const place = document.createElement('p'); place.textContent = site.municipio + ' · estación meteorológica (NOAA GHCNh)';
+      const note = document.createElement('p'); note.textContent = 'Mide temperatura, humedad, viento y presión. No mide PM2.5.';
+      const link = document.createElement('a'); link.href = '#tiempo'; link.textContent = 'Ver el tiempo en El Marqués →';
+      box.append(name, place, note, link);
+      marker.bindPopup(box).bindTooltip(site.nombre, {className: 'station-label'}).addTo(map);
+    }
+    if (data?.estaciones?.length) {
+      const key = document.createElement('span'); key.innerHTML = '<i class="key weather-key" aria-hidden="true"></i> Estación meteorológica (no mide contaminantes)';
+      document.querySelector('.map-aside .legend')?.append(key);
+    }
+  }).catch(() => {});
   let tiles;
   tileButton.addEventListener('click', () => {
     if (tiles) { map.removeLayer(tiles); tiles = null; tileButton.setAttribute('aria-pressed','false'); tileButton.textContent='Activar mapa base en línea'; status.textContent='Mapa base desactivado. Los puntos y la lista permanecen disponibles.'; return; }
@@ -73,4 +91,27 @@
   }
   const sync=()=>entries.forEach(d=>d.open=!mobile.matches);
   mobile.addEventListener('change',sync);sync();
+})();
+
+// Entrada suave de secciones y navegación que sigue la lectura; sin JS todo queda visible.
+(() => {
+  const sections = [...document.querySelectorAll('main > section, main > .section')];
+  if ('IntersectionObserver' in window) {
+    document.documentElement.classList.add('js-reveal');
+    const reveal = new IntersectionObserver(entries => {
+      for (const entry of entries) if (entry.isIntersecting) { entry.target.classList.add('is-visible'); reveal.unobserve(entry.target); }
+    }, {rootMargin: '0px 0px -8% 0px', threshold: .06});
+    for (const section of sections) {
+      if (section.classList.contains('hero')) continue;
+      section.classList.add('reveal');
+      reveal.observe(section);
+    }
+    const links = new Map([...document.querySelectorAll('.site-header nav a[href^="#"]')].map(a => [a.getAttribute('href').slice(1), a]));
+    const current = new IntersectionObserver(entries => {
+      for (const entry of entries) if (entry.isIntersecting && links.has(entry.target.id)) {
+        links.forEach(a => a.classList.remove('is-current')); links.get(entry.target.id).classList.add('is-current');
+      }
+    }, {rootMargin: '-40% 0px -55% 0px'});
+    sections.filter(s => links.has(s.id)).forEach(s => current.observe(s));
+  }
 })();

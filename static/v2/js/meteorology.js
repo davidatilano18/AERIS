@@ -108,6 +108,8 @@
       $('weatherSource').replaceChildren(...sources.map(s=>new Option((s.tipo_producto==='observacion'?'Observación · ':'Reanálisis · ')+s.nombre,s.fuente_id)));
       if(sources.some(s=>s.fuente_id==='noaa-ghcnh'))$('weatherSource').value='noaa-ghcnh';siteOptions();
       $('weatherDomain').disabled=false;$('weatherAvailability').textContent=sources.length+' productos con series verificables';
+      // Enlace directo desde el inicio (/inicio/explorar#tiempo).
+      if(location.hash==='#tiempo')$('weatherDomain').click();
     }catch(error){$('weatherAvailability').textContent='Capa no disponible en esta base';$('weatherDomain').disabled=true;}
   })();
 })();
