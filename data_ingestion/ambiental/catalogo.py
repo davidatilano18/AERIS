@@ -32,7 +32,33 @@ FUENTES = {
         'notas': 'Producto de rejilla (MERRA-2/GEOS-IT). Covariable modelada, no observación local; '
                  'latencia de 1-3 días. Valor de relleno -999 se descarta, nunca se imputa.',
     },
+    'openaq-archivo': {
+        'nombre': 'OpenAQ Archive (red de monitoreo de Querétaro vía SINAICA)',
+        'organizacion': 'OpenAQ; datos de la red estatal publicados en SINAICA',
+        'url': 'https://openaq-data-archive.s3.amazonaws.com/',
+        'documentacion_url': 'https://docs.openaq.org/aws/about',
+        'licencia': 'Términos de SINAICA (licencia de proveedor 36 en OpenAQ: atribución requerida) y de OpenAQ',
+        'atribucion': 'Datos de OpenAQ (archivo público), red de monitoreo de Querétaro / SINAICA; procesados por AERIS',
+        'tipo_producto': 'observacion',
+        'metodo_acceso': 'HTTPS sin clave; CSV diario por ubicación, verificado por SHA-256',
+        'notas': 'Contaminantes criterio distintos de PM2.5 (PM10, O3, NO2, SO2, CO), con su unidad original. '
+                 'El PM2.5 del mismo archivo se guarda en la tabla de mediciones existente para no duplicarlo. '
+                 'La hora se conserva tal como la reporta el archivo, normalizada a UTC.',
+    },
 }
+
+# Estaciones de la red de calidad del aire (ubicaciones OpenAQ verificadas en data/openaq_stations.json).
+# sensor_pm25 enlaza con la tabla de mediciones existente; nunca se fusionan series de ubicaciones distintas.
+_RED = [
+    (235220, 8956473, 'Carrillo Puerto', 'Querétaro', 20.610597222222, -100.43759722222),
+    (235221, 1352686, 'El Marqués (histórico)', 'El Marqués', 20.605872222222, -100.33229166667),
+    (235224, 1352719, 'Josefa Vergara', 'Querétaro', 20.565863888889, -100.38918611111),
+    (235225, 1352676, 'Corregidora', 'Corregidora', 20.552563888889, -100.44580555556),
+    (235232, 1352718, 'San Juan del Río (ubicación 235232)', 'San Juan del Río', 20.388888888889, -99.972147222222),
+    (235234, 1352681, 'Félix Osores', 'Querétaro', 20.636819444444, -100.46388333333),
+    (480392, 2694071, 'Epigmenio González', 'Querétaro', 20.627538888889, -100.40862222222),
+    (6498868, 17320548, 'San Juan del Río (ubicación 6498868)', 'San Juan del Río', 20.389961111111, -99.991727777778),
+]
 
 ESTACIONES = {
     'ghcnh:MXI0000MMQT': {
@@ -64,6 +90,14 @@ ESTACIONES = {
         'metadatos': {'comparar_con': 'OpenAQ sensor 1352676'},
     },
 }
+
+for _loc, _sensor, _nombre, _municipio, _lat, _lon in _RED:
+    ESTACIONES[f'openaq:{_loc}'] = {
+        'fuente_id': 'openaq-archivo', 'id_externo': str(_loc), 'nombre': _nombre, 'municipio': _municipio,
+        'municipio_nota': 'Estación de la red de calidad del aire; representa su entorno, no todo el municipio.',
+        'latitud': _lat, 'longitud': _lon, 'elevacion_m': None, 'tipo_sitio': 'estacion', 'resolucion_espacial': 'punto',
+        'metadatos': {'location_id': _loc, 'sensor_pm25': _sensor},
+    }
 
 # Rangos físicos amplios para Querétaro (~1,900 m): marcan, nunca corrigen ni eliminan.
 VARIABLES = {

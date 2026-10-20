@@ -34,8 +34,9 @@ class EstadoTests(unittest.TestCase):
                              (SENSOR, t, int(h in revision), int(h in revision), int(h in revision)))
 
     def test_bandas_oficiales_2026(self):
-        self.assertEqual([banda(v) for v in (15, 15.1, 25, 25.1, 79, 79.1, 130, 131)],
-                         ['Buena', 'Aceptable', 'Aceptable', 'Mala', 'Mala', 'Muy mala', 'Muy mala',
+        # Se redondea a entero antes de clasificar (NOM-172): 15.4 -> 15 (Buena), 15.5 -> 16 (Aceptable).
+        self.assertEqual([banda(v) for v in (15, 15.4, 15.5, 25.4, 25.5, 79.4, 79.5, 130.4, 130.5)],
+                         ['Buena', 'Buena', 'Aceptable', 'Aceptable', 'Mala', 'Mala', 'Muy mala', 'Muy mala',
                           'Extremadamente mala'])
 
     def test_dieciocho_horas_y_revision_excluida(self):

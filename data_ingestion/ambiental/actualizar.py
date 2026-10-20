@@ -267,7 +267,8 @@ def main(argv=None):
         parser.error('--desde requiere zona horaria explícita')
     try:
         reporte = ejecutar(args.db, args.fuente, args.si_corresponde, desde, args.permitir_base_principal,
-                           crudos=args.crudos, rellenar=args.rellenar)
+                           crudos=args.crudos, rellenar=args.rellenar,
+                           bajar=descargar)  # se resuelve al llamar: las pruebas pueden sustituirlo
     except (OSError, sqlite3.Error, PermissionError, RuntimeError) as exc:
         reporte = {'estado': 'fallo_entrada', 'error_tipo': type(exc).__name__, 'detalle': str(exc)[:200],
                    'finalizado_utc': almacen.iso_utc(datetime.now(timezone.utc))}

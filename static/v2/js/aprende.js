@@ -11,7 +11,8 @@
     {nombre: 'Extremadamente mala', riesgo: 'Extremadamente alto', tope: Infinity, clase: 'b-extrema'},
   ];
   const NORMA = 25, OMS = 15, MAXIMO = 150, MINIMAS = 18;
-  const banda = v => BANDAS.find(b => v <= b.tope);
+  // La norma redondea a entero «mitad hacia arriba» antes de clasificar (15.4 -> Buena; 15.5 -> Aceptable).
+  const banda = v => BANDAS.find(b => Math.floor(v + 0.5) <= b.tope);
   const fmt = (v, d = 1) => v.toLocaleString('es-MX', {minimumFractionDigits: d, maximumFractionDigits: d});
 
   // 1) Simulador.

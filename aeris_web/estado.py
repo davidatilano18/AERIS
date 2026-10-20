@@ -32,6 +32,9 @@ LIMITE_ACEPTABLE_2024_2025 = 33
 
 
 def banda(valor):
+    """Clasifica tras redondear a entero «mitad hacia arriba», como exige la NOM-172 para PM2.5."""
+    from .indice import redondear
+    valor = redondear(valor, 0)
     for nombre, tope in zip(BANDAS, LIMITES):
         if valor <= tope:
             return nombre
