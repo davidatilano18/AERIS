@@ -21,12 +21,15 @@ class InmersivoTests(unittest.TestCase):
         self.assertEqual(r.status_code, 200)
         return r, r.get_data(as_text=True)
 
-    def test_predeterminada_clasica_sin_escenas(self):
+    def test_predeterminada_inmersiva_y_clasica_disponible(self):
         r, html = self.texto('/inicio')
-        self.assertNotIn('escena-intro', html)
-        self.assertNotIn('gsap', html)
-        self.assertIn('El aire que respiras', html)
+        self.assertIn('escena-intro', html)
+        self.assertIn('href="/inicio?experiencia=clasica"', html)
         self.assertIsNone(r.headers.get('Set-Cookie'))
+        _, clasica = self.texto('/inicio?experiencia=clasica')
+        self.assertNotIn('escena-intro', clasica)
+        self.assertNotIn('gsap', clasica)
+        self.assertIn('El aire que respiras', clasica)
 
     def test_inmersiva_por_parametro_y_galleta_segura(self):
         r, html = self.texto('/inicio?experiencia=inmersiva')
@@ -46,7 +49,8 @@ class InmersivoTests(unittest.TestCase):
 
     def test_valor_desconocido_se_ignora(self):
         r, html = self.texto('/inicio?experiencia=<script>')
-        self.assertNotIn('escena-intro', html)
+        self.assertIn('escena-intro', html)  # se usa la predeterminada
+        self.assertNotIn('<script>"', html)
         self.assertIsNone(r.headers.get('Set-Cookie'))
 
     def test_solo_recursos_locales_y_verificados(self):

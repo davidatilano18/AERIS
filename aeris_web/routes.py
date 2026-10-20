@@ -14,7 +14,7 @@ def favicon():
 
 # AERIS 3.0: la experiencia inmersiva se elige en el servidor (sin destellos) y se recuerda.
 EXPERIENCIAS = ('clasica', 'inmersiva')
-EXPERIENCIA_PREDETERMINADA = 'clasica'
+EXPERIENCIA_PREDETERMINADA = 'inmersiva'
 GALLETA_EXPERIENCIA = 'aeris_experiencia'
 
 

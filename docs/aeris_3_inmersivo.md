@@ -1,7 +1,7 @@
 # AERIS 3.0 — experiencia inmersiva
 
 Rama `aeris-inmersivo-3`, worktree `C:\Users\MSI_COREi5\AERIS-Inmersivo`, a partir de `42492c0`.
-La versión del congreso (`aeris-demo-integracion`) no cambia.
+Integrada en la rama del congreso (`aeris-demo-integracion`) el 20/10/2026.
 
 ## Cómo verla
 
@@ -11,8 +11,8 @@ C:\Users\MSI_COREi5\AERIS\.venv\Scripts\python.exe -B scripts\run_local_demo.py 
   --manifest C:\Users\MSI_COREi5\AERIS-Demo-datos\corte-20261020\demo.json --offline --port 5080
 ```
 
-- Inmersiva: http://127.0.0.1:5080/inicio?experiencia=inmersiva (se recuerda en una galleta).
-- Clásica: http://127.0.0.1:5080/inicio?experiencia=clasica. Hoy es la predeterminada.
+- Inmersiva (predeterminada desde el 20/10/2026): http://127.0.0.1:5080/inicio
+- Clásica: http://127.0.0.1:5080/inicio?experiencia=clasica (se recuerda en una galleta).
 - En el pie de página hay un enlace para cambiar de experiencia.
 
 ## Escenas
@@ -52,6 +52,13 @@ GSAP 3.15.0 (gsap, ScrollTrigger, SplitText; licencia estándar sin costo de Web
 - `laboratorio3.css`: titulares editoriales, encabezado de vidrio, estados de carga y error.
 - Eje de tiempo con horas en ventanas ≤ 48 h. Transiciones entre páginas en todas las vistas.
 - El dashboard original (`/`) ya no depende de CDN para Leaflet, Chart.js e Inter.
+
+## Datos abiertos y Aprende
+
+- `/inicio/datos`: CSV de PM2.5 horario, PM2.5 diario (NOM-172), meteorología NOAA MMQT y reanálisis
+  NASA POWER, con diccionario de columnas, origen y licencia (`aeris_web/datos_abiertos.py`).
+- `/inicio/aprende`: PM2.5 y µg/m³, simulador de la escala oficial, recorrido de tres días reales,
+  NOM-025 frente a OMS, índice horario y revisión de datos (`aeris_web/aprende.py`).
 
 ## Verificación
 

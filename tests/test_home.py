@@ -19,7 +19,8 @@ class HomeTests(unittest.TestCase):
     def test_preserves_original_routes_and_adds_home(self):
         for route in ('/', '/v2', '/v2/datos', '/inicio'):
             self.assertEqual(self.client.get(route).status_code, 200)
-        text = self.client.get('/inicio').get_data(as_text=True)
+        # La portada clásica sigue disponible; la inmersiva (3.0) es la predeterminada.
+        text = self.client.get('/inicio?experiencia=clasica').get_data(as_text=True)
         self.assertIn('El aire que respiras', text)
         self.assertIn('EVIDENCIA INSUFICIENTE', text)
         self.assertIn('deshabilitados', text)
@@ -99,7 +100,7 @@ class HomeTests(unittest.TestCase):
                 self.assertEqual(value.status_code, 200)
 
     def test_new_home_has_real_telemetry_and_accessible_station_chart(self):
-        text = self.client.get('/inicio').get_data(as_text=True)
+        text = self.client.get('/inicio?experiencia=clasica').get_data(as_text=True)
         self.assertIn('REGISTROS PARA EXPLORAR', text)
         self.assertIn('/inicio/anterior', text)
         self.assertIn('id="homeChart"', text)
