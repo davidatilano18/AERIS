@@ -9,7 +9,7 @@ volumen ni las variables. La CLI de Railway no está instalada en este equipo.
 |---|---|
 | Repositorio | `https://github.com/davidatilano18/AERIS.git` |
 | Rama a subir | `aeris-demo-integracion` (nueva en el remoto; **no** se fusiona con `main`) |
-| Commit congelado | etiqueta local `aeris-congreso-3.0` (AERIS 3.0; la anterior es `aeris-congreso-20261021`) |
+| Commit congelado | etiqueta local `aeris-congreso-3.0.1` (AERIS 3.0; la anterior es `aeris-congreso-20261021`) |
 | Constructor | Dockerfile, forzado por `railway.json` (no Railpack) |
 | Arranque | `python railway_start.py` → verifica el corte, baja a UID 10001, `exec gunicorn` |
 | Datos | un solo archivo, `aeris.db`, en el volumen `aeris-volume` montado en `/dataset` |
