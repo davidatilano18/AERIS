@@ -42,7 +42,7 @@
   let tiles;
   tileButton.addEventListener('click', () => {
     if (tiles) { map.removeLayer(tiles); tiles = null; tileButton.setAttribute('aria-pressed','false'); tileButton.textContent='Activar mapa base en línea'; status.textContent='Mapa base desactivado. Los puntos y la lista permanecen disponibles.'; return; }
-    tiles = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom: 18, attribution: '© OpenStreetMap contributors'}).addTo(map);
+    tiles = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom: 18, className: 'mapa-base-oscura', attribution: '© OpenStreetMap contributors'}).addTo(map);
     tiles.on('tileerror', () => { status.textContent='No se pudo cargar el mapa base. Usa los puntos o la lista de estaciones.'; });
     tileButton.setAttribute('aria-pressed','true'); tileButton.textContent='Desactivar mapa base'; status.textContent='Mapa base en línea activado; requiere conexión externa.';
   });

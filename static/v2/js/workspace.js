@@ -44,7 +44,9 @@
     if (!map) {
       map=L.map('labMap',{scrollWheelZoom:false,zoomAnimation:false,fadeAnimation:false});
       layer=L.layerGroup().addTo(map);
+      map.attributionControl.setPrefix(false);
       map.attributionControl.addAttribution('Ubicaciones: catálogo OpenAQ');
+      if(document.body.dataset.offline!=='true')toggleTiles();
     }
     layer.clearLayers();
     const available=catalog.filter(s=>Number.isFinite(s.lat)&&Number.isFinite(s.lon)&&
@@ -54,8 +56,11 @@
     for(const s of available) {
       const group=s.sources.find(g=>g.source===$('labSource').value);
       const selected=String(s.sensor_id)===$('labStation').value;
-      const marker=L.circleMarker([s.lat,s.lon],{radius:selected?10:6,weight:selected?3:1.5,
-        color:selected?'#effff8':'#75efd2',fillColor:'#75efd2',fillOpacity:group?.count?.valueOf()? .65:0}).addTo(layer);
+      const conDatos=Boolean(group?.count);
+      // Halo y borde oscuro para que el punto contraste con cualquier fondo; la selección va en blanco.
+      L.circleMarker([s.lat,s.lon],{radius:(selected?11:8)+6,stroke:false,fillColor:'#75efd2',fillOpacity:selected?.28:.14,interactive:false}).addTo(layer);
+      const marker=L.circleMarker([s.lat,s.lon],{radius:selected?11:8,weight:selected?3:2,
+        color:selected?'#ffffff':conDatos?'#06131d':'#75efd2',fillColor:conDatos?'#75efd2':'#06131d',fillOpacity:.95}).addTo(layer);
       const title=document.createElement('span');title.textContent=s.name;
       marker.bindTooltip(title,{className:'station-label'});
       const choose=()=>{$('labStation').value=String(s.sensor_id);load();};
@@ -133,9 +138,11 @@
   for(const id of ['dateFrom','dateTo'])$(id).addEventListener('change',()=>{controller?.abort();clear();applied=null;$('runComparison').disabled=true;$('labChartBox').setAttribute('aria-busy','false');$('labChartState').hidden=false;$('labChartState').textContent='Pulsa Aplicar selección para consultar estas fechas UTC.';});
   $('marquesShortcut').addEventListener('click',()=>{$('labMunicipality').value='El Marqués';refill('1352686');$('labSource').value='OpenAQ';$('labPeriod').value='all';load();});
   $('labMore').addEventListener('click',tablePage);
-  $('labTiles').addEventListener('click',()=>{if(!map)return;if(tiles){map.removeLayer(tiles);tiles=null;$('labTiles').textContent='Mapa base en línea';return;}
-    tiles=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,attribution:'© OpenStreetMap contributors'}).addTo(map);
-    tiles.on('tileerror',()=>{$('labMapNote').textContent='Mapa base no disponible. Los puntos y filtros siguen funcionando.';});$('labTiles').textContent='Desactivar mapa base';});
+  function toggleTiles(){if(!map)return;if(tiles){map.removeLayer(tiles);tiles=null;$('labTiles').textContent='Mostrar mapa base';return;}
+    // OpenStreetMap oscurecido por CSS (mapa_base.css) para que los puntos contrasten.
+    tiles=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,className:'mapa-base-oscura',attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'}).addTo(map);
+    tiles.on('tileerror',()=>{$('labMapNote').textContent='Mapa base no disponible. Los puntos y filtros siguen funcionando.';});$('labTiles').textContent='Ocultar mapa base';}
+  $('labTiles').addEventListener('click',toggleTiles);
   if(document.body.dataset.offline==='true'){$('labTiles').disabled=true;$('labTiles').textContent='Sin conexión · mapa local';}
   for(const button of document.querySelectorAll('[data-view]'))if(button.tagName==='BUTTON')button.addEventListener('click',()=>{
     $('labGrid').dataset.view=button.dataset.view;

@@ -3,15 +3,6 @@
 .map-frame{display:flex;flex-direction:column}
 .map-frame #homeMap{flex:1;height:auto;min-height:560px;background-color:#0b1d29}
 
-/* OpenStreetMap oscurecido y desaturado: el fondo informa sin competir con los puntos. */
-.mapa-base-oscura{filter:invert(1) hue-rotate(180deg) saturate(.08) brightness(.9) contrast(.9);opacity:.72}
-.leaflet-container{font-family:Inter,"Segoe UI",Arial,sans-serif;background:#0b1d29}
-.leaflet-control-attribution{background:#07121ecc!important;color:#8fa9b4!important;font-size:9px!important;padding:2px 8px!important;border-top-left-radius:6px}
-.leaflet-container .leaflet-control-attribution a{color:#9fe9d6}
-.leaflet-bar{border:1px solid #33525d!important;box-shadow:0 6px 18px #0006!important}
-.leaflet-container a.leaflet-control-zoom-in,.leaflet-container a.leaflet-control-zoom-out{background:#0c2230;color:#d9ecef;border-bottom-color:#33525d}
-.leaflet-container a.leaflet-control-zoom-in:hover,.leaflet-container a.leaflet-control-zoom-out:hover{background:#163647;color:#75efd2}
-
 /* Nombres de estación: solo con zoom suficiente (clase que pone home.js). */
 .leaflet-tooltip.station-tag{background:#07121ee6;color:#e8f1f4;border:1px solid #2f5260;border-radius:4px;box-shadow:0 4px 14px #0007;font-size:11px;font-weight:550;padding:3px 8px;display:none}
 .leaflet-tooltip.station-tag:before{display:none}
